@@ -3,26 +3,26 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			María del Pilar Bourdieu
-			Abigail Karina Peñafiel Huayta	41913506
+			MarÃ­a del Pilar Bourdieu
+			Abigail Karina PeÃ±afiel Huayta	41913506
 			Federico Pucci
-			Mara Verónica Guerrera
+			Mara VerÃ³nica Guerrera
 
 		FECHA DE ENTREGA: 01/11/2024
 
 ENTREGA 3:
 
-Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
-las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
-etc.) en un documento como el que le entregaría al DBA.
-Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deberá entregar
-un archivo .sql con el script completo de creación (debe funcionar si se lo ejecuta “tal cual” es
-entregado). Incluya comentarios para indicar qué hace cada módulo de código.
-Genere store procedures para manejar la inserción, modificado, borrado (si corresponde,
-también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
-Los nombres de los store procedures NO deben comenzar con “SP”.
-Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
-en la creación de objetos. NO use el esquema “dbo”.
+DeberÃ¡ instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicaciÃ³n de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregarÃ­a al DBA.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. DeberÃ¡ entregar
+un archivo .sql con el script completo de creaciÃ³n (debe funcionar si se lo ejecuta â€œtal cualâ€ es
+entregado). Incluya comentarios para indicar quÃ© hace cada mÃ³dulo de cÃ³digo.
+Genere store procedures para manejar la inserciÃ³n, modificado, borrado (si corresponde,
+tambiÃ©n debe decidir si determinadas entidades solo admitirÃ¡n borrado lÃ³gico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con â€œSPâ€.
+Genere esquemas para organizar de forma lÃ³gica los componentes del sistema y aplique esto
+en la creaciÃ³n de objetos. NO use el esquema â€œdboâ€.
 
 */
 
