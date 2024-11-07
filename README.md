@@ -1,5 +1,5 @@
 Archivos 
-
+https://docs.google.com/document/d/1Ocj6CDh_mJquYg7BWyarYnQ26f5hCJQUOTf-dN3YSRo/edit?tab=t.0
 catalogo.csv 
 id,category,name,price,reference_price,reference_unit,date
 id,categoría,nombre,precio,precio_de_referencia,unidad_de_referencia,fecha
