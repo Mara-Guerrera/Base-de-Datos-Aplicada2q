@@ -31,37 +31,82 @@ en el fuente SQL. (Sería una excepción si el archivo está malformado y no es 
 interpretarlo como JSON o CSV).
 */
 
--- EJEMPLO DE SP GENERICO
-
-CREATE OR ALTER PROCEDURE Importar_Excel
-    @RutaArchivo VARCHAR(100), -- Ruta completa del archivo Excel
-    @NombreHoja CHAR(10),  -- Nombre de la hoja de Excel a importar
-    @NombreTablaDestino VARCHAR(10)
+CREATE OR ALTER PROCEDURE ImportarEmpleados
 AS
 BEGIN
-    -- Habilitar el acceso a consultas distribuidas, si no está habilitado
-    IF (SELECT value_in_use FROM sys.configurations WHERE name = 'Ad Hoc Distributed Queries') = 0
-    BEGIN
-        EXEC sp_configure 'show advanced options', 1;
-        RECONFIGURE;
-        EXEC sp_configure 'Ad Hoc Distributed Queries', 1;
-        RECONFIGURE;
-    END
+    CREATE TABLE #TempEmpleados (
+        [email personal]	VARCHAR(80),
+		[email empresa]		VARCHAR(80),
+        CUIL				CHAR(13),
+		Cargo				VARCHAR(20),
+		Sucursal			VARCHAR(20),
+		Turno				VARCHAR(20)
+    );
 
-    -- Importar los datos desde el archivo Excel
-    DECLARE @importacion NVARCHAR(MAX);
+	INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
+	SELECT 
+		 [email personal],
+		 [email empresa],
+		 CUIL,
+		 Cargo,
+		 Sucursal,
+		 Turno
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+					'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx;HDR=YES',
+					'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
 
-    SET @importacion = '
-        SELECT * 
-        INTO ' + QUOTENAME(@NombreTablaDestino) + ' 
-        FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
-                        ''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
-                        ''SELECT * FROM [' + @NombreHoja + '$]'')';
+	INSERT INTO gestion_sucursal.Turno (descripcion)
+	SELECT DISTINCT Turno
+	FROM #TempEmpleados
+	WHERE Turno IS NOT NULL
+	
+	INSERT INTO gestion_sucursal.Cargo (nombre)
+	SELECT DISTINCT Cargo
+	FROM #TempEmpleados
+	WHERE Cargo IS NOT NULL
 
-    -- Ejecutar el SQL dinámico
-    EXEC sp_executesql @importacion;
-END
+	INSERT INTO gestion_sucursal.Sucursal (nombre)
+	SELECT DISTINCT Sucursal
+	FROM #TempEmpleados
+	WHERE Sucursal IS NOT NULL;
+	WITH CTE AS
+	(
+		SELECT 
+			te.[email personal],
+			te.[email empresa],
+			te.CUIL,
+			c.id AS id_cargo,  
+			s.id AS id_sucursal, 
+			t.id AS id_turno
+		FROM #TempEmpleados te 
+		INNER JOIN gestion_sucursal.Turno t ON t.descripcion = te.turno
+		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
+		INNER JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
+		
+		WHERE NOT EXISTS (
+            	SELECT 1 
+            	FROM gestion_sucursal.Empleado e 
+           	WHERE e.email_empresa = te.[email empresa] COLLATE Modern_Spanish_CI_AS
+       	 	)
+	)
+	INSERT INTO gestion_sucursal.Empleado (email, email_empresa, cuil, id_cargo, id_sucursal, id_turno)
+	SELECT 
+		CTE.[email personal],
+		CTE.[email empresa],
+		CTE.CUIL,
+		CTE.id_cargo,
+		CTE.id_sucursal,
+		CTE.id_turno
+	FROM CTE;
+
+    -- Limpiar la tabla temporal
+    DROP TABLE #TempEmpleados;
+
+    -- Confirmar que todo se completó sin errores
+    PRINT 'Importación y registro completados exitosamente.';
+END;
 GO
+EXEC ImportarEmpleados
 
 -- ============================ STORED PROCEDURES IMPORTACION ============================
 
