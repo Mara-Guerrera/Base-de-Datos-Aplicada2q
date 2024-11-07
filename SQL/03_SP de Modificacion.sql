@@ -12,10 +12,10 @@ BEGIN
     -- Verificar si la ciudad existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id)
     BEGIN
-        -- Validar el nombre (mismo chequeo que la restricción)
+        -- Validar el nombre (mismo chequeo que la restricciÃ³n)
         IF LEN(@nombre) <= 50
         BEGIN
-            -- Realizar la actualización
+            -- Realizar la actualizaciÃ³n
             UPDATE gestion_sucursal.Ciudad
             SET nombre = @nombre
             WHERE id = @id;
@@ -26,7 +26,7 @@ BEGIN
     ELSE
     BEGIN
         -- El registro no existe
-        PRINT 'Error: No se encontró una ciudad con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ una ciudad con el ID especificado.';
     END
 END;
 GO
@@ -47,7 +47,7 @@ BEGIN
     -- Verificar si la sucursal existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id AND activo = 1)
     BEGIN
-        -- Validar el nombre (mismo chequeo que la restricción)
+        -- Validar el nombre (mismo chequeo que la restricciÃ³n)
         IF LEN(@nombre) <= 30
         BEGIN
             -- Actualizar el registro
@@ -66,7 +66,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró una Sucursal con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ una Sucursal con el ID especificado.';
     END
 END;
 GO
@@ -85,7 +85,7 @@ BEGIN
 	IF @cuil IS NULL AND @email IS NULL AND @email_empresa IS NULL
 		AND @id_cargo IS NULL AND @id_sucursal IS NULL AND @id_turno IS NULL
     BEGIN
-		PRINT 'Error: No ingresó los datos que se quieren modificar.';
+		PRINT 'Error: No ingresÃ³ los datos que se quieren modificar.';
 		RETURN;
 	END
 
@@ -96,19 +96,19 @@ BEGIN
 		UPDATE gestion_sucursal.Empleado
 		SET
 			cuil = ISNULL(@cuil, cuil),
-			email = ISNULL(@email, precio),
+			email = ISNULL(@email, email),
 			email_empresa = ISNULL(@email_empresa, email_empresa),
 			id_cargo = ISNULL(@id_cargo, id_cargo),
 			id_sucursal = ISNULL(@id_sucursal, id_sucursal),
 			id_turno = ISNULL(@id_turno, id_turno)
 		WHERE id = @id
 
-        -- Mensaje de confirmación si hubo al menos un cambio
-        PRINT 'Actualización de Empleado completada.';
+        -- Mensaje de confirmaciÃ³n si hubo al menos un cambio
+        PRINT 'ActualizaciÃ³n de Empleado completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un Empleado con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un Empleado con el ID especificado.';
     END
 END;
 GO
@@ -121,7 +121,7 @@ BEGIN
     -- Verificar si el tipo de cliente existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar la longitud de la descripción
+        -- Validar la longitud de la descripciÃ³n
         IF LEN(@descripcion) <= 10
         BEGIN
             -- Actualizar el registro
@@ -133,12 +133,12 @@ BEGIN
         END
         ELSE
         BEGIN
-            PRINT 'Error: La descripción excede el límite de 10 caracteres.';
+            PRINT 'Error: La descripciÃ³n excede el lÃ­mite de 10 caracteres.';
         END
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un TipoCliente con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un TipoCliente con el ID especificado.';
     END
 END;
 GO
@@ -148,10 +148,10 @@ CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Genero
     @descripcion VARCHAR(10)
 AS
 BEGIN
-    -- Verificar si el género existe
+    -- Verificar si el gÃ©nero existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar la longitud de la descripción
+        -- Validar la longitud de la descripciÃ³n
         IF LEN(@descripcion) <= 10
         BEGIN
             -- Actualizar el registro
@@ -163,12 +163,12 @@ BEGIN
         END
         ELSE
         BEGIN
-            PRINT 'Error: La descripción excede el límite de 10 caracteres.';
+            PRINT 'Error: La descripciÃ³n excede el lÃ­mite de 10 caracteres.';
         END
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un Genero con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un Genero con el ID especificado.';
     END
 END;
 GO
@@ -184,7 +184,7 @@ AS
 BEGIN
 	IF  @nombre IS NULL AND @apellido IS NULL AND @tipo IS NULL AND @id_genero IS NULL AND @id_ciudad IS NULL
 	BEGIN
-		PRINT 'Error: No ingresó los datos que se quieren modificar.';
+		PRINT 'Error: No ingresÃ³ los datos que se quieren modificar.';
 		RETURN;
 	END
 
@@ -192,7 +192,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id and activo = 1)
     BEGIN
 
-        -- Actualizar tipo (id_tipoCliente) si se proporciona y es válido
+        -- Actualizar tipo (id_tipoCliente) si se proporciona y es vÃ¡lido
         IF @tipo IS NOT NULL
         BEGIN
             IF EXISTS (
@@ -212,7 +212,7 @@ BEGIN
             END
         END
 
-        -- Actualizar id_genero si se proporciona y es válido
+        -- Actualizar id_genero si se proporciona y es vÃ¡lido
         IF @id_genero IS NOT NULL
         BEGIN
             IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero and activo = 1)
@@ -228,7 +228,7 @@ BEGIN
             END
         END
 
-        -- Actualizar id_ciudad si se proporciona y es válido
+        -- Actualizar id_ciudad si se proporciona y es vÃ¡lido
         IF @id_ciudad IS NOT NULL
         BEGIN
             IF EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id_ciudad)
@@ -267,12 +267,12 @@ BEGIN
             
         END
 
-        -- Mensaje de confirmación si hubo al menos un cambio
-        PRINT 'Actualización de Cliente completada.';
+        -- Mensaje de confirmaciÃ³n si hubo al menos un cambio
+        PRINT 'ActualizaciÃ³n de Cliente completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un Cliente con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un Cliente con el ID especificado.';
     END
 END;
 GO
@@ -297,16 +297,16 @@ BEGIN
             END
             ELSE
             BEGIN
-                PRINT 'Error: El nombre excede el límite de 40 caracteres.';
+                PRINT 'Error: El nombre excede el lÃ­mite de 40 caracteres.';
             END
         END
 
-        -- Confirmación si hubo un cambio
-        PRINT 'Actualización de TipoProducto completada.';
+        -- ConfirmaciÃ³n si hubo un cambio
+        PRINT 'ActualizaciÃ³n de TipoProducto completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un TipoProducto con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un TipoProducto con el ID especificado.';
     END
 END;
 GO
@@ -341,7 +341,7 @@ BEGIN
 		cant_x_unidad = ISNULL(@cant_por_unidad, cant_por_unidad)
 		FROM gestion_producto.Producto a
 		WHERE id = @id
-	PRINT 'Producto modificado con éxito.';
+	PRINT 'Producto modificado con Ã©xito.';
 END;
 GO
 -- ============================ SP MODIFICACION GESTION_VENTA ============================
@@ -354,14 +354,14 @@ BEGIN
 
 		IF  @descripcion IS NULL 
         BEGIN
-                PRINT 'Error: No ingresó los datos que se quieren modificar.';
+                PRINT 'Error: No ingresÃ³ los datos que se quieren modificar.';
 				RETURN;
 		END
 
     -- Verificar si el medio de pago existe
     IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar y actualizar descripción si se proporciona
+        -- Validar y actualizar descripciÃ³n si se proporciona
         IF @descripcion IS NOT NULL
         BEGIN
             IF LEN(@descripcion) <= 30
@@ -373,12 +373,12 @@ BEGIN
          
         END
 
-        -- Confirmación si hubo un cambio
-        PRINT 'Actualización de MedioDePago completada.';
+        -- ConfirmaciÃ³n si hubo un cambio
+        PRINT 'ActualizaciÃ³n de MedioDePago completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un MedioDePago con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un MedioDePago con el ID especificado.';
     END
 END;
 GO
@@ -402,16 +402,16 @@ BEGIN
             END
             ELSE
             BEGIN
-                PRINT 'Error: El nombre debe ser un solo carácter alfabético.';
+                PRINT 'Error: El nombre debe ser un solo carÃ¡cter alfabÃ©tico.';
             END
         END
 
-        -- Confirmación si hubo un cambio
-        PRINT 'Actualización de TipoFactura completada.';
+        -- ConfirmaciÃ³n si hubo un cambio
+        PRINT 'ActualizaciÃ³n de TipoFactura completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un TipoFactura con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ un TipoFactura con el ID especificado.';
     END
 END;
 GO
@@ -431,7 +431,7 @@ BEGIN
     -- Verificar si la factura existe
     IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura and activo = 1)
     BEGIN
-        -- Validación y actualización de cada campo
+        -- ValidaciÃ³n y actualizaciÃ³n de cada campo
         IF @id_tipofactura IS NOT NULL
         BEGIN
             IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipofactura and activo = 1)
@@ -517,12 +517,12 @@ BEGIN
             END
         END
 
-        -- Mensaje de confirmación si se realizó al menos un cambio
-        PRINT 'Actualización de Factura completada.';
+        -- Mensaje de confirmaciÃ³n si se realizÃ³ al menos un cambio
+        PRINT 'ActualizaciÃ³n de Factura completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró una Factura con el ID especificado.';
+        PRINT 'Error: No se encontrÃ³ una Factura con el ID especificado.';
     END
 END;
 GO
@@ -540,7 +540,7 @@ BEGIN
     IF EXISTS (	SELECT 1 FROM gestion_venta.DetalleVenta
 				WHERE id_detalle = @id_detalle AND id_factura = @id_factura and activo = 1)
     BEGIN
-        -- Validación y actualización de cada campo
+        -- ValidaciÃ³n y actualizaciÃ³n de cada campo
         IF @id_producto IS NOT NULL
         BEGIN
             IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto and activo = 1)
@@ -597,12 +597,12 @@ BEGIN
             END
         END
 
-        -- Mensaje de confirmación si se realizó al menos un cambio
-        PRINT 'Actualización de DetalleVenta completada.';
+        -- Mensaje de confirmaciÃ³n si se realizÃ³ al menos un cambio
+        PRINT 'ActualizaciÃ³n de DetalleVenta completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un DetalleVenta con el ID especificado y el ID de factura.';
+        PRINT 'Error: No se encontrÃ³ un DetalleVenta con el ID especificado y el ID de factura.';
     END
 END;
 GO
