@@ -3,31 +3,31 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			MarÌa del Pilar Bourdieu
-			Abigail Karina PeÒafiel Huayta	41913506
+			Mar√≠a del Pilar Bourdieu
+			Abigail Karina Pe√±afiel Huayta	41913506
 			Federico Pucci
-			Mara VerÛnica Guerrera
+			Mara Ver√≥nica Guerrera
 
 		FECHA DE ENTREGA: 08/11/2024
 
 ENTREGA 4:
 
 Se proveen los archivos en el TP_integrador_Archivos.zip
-Ver archivo ìDatasets para importarî en Miel.
-Se requiere que importe toda la informaciÛn antes mencionada a la base de datos:
-ï Genere los objetos necesarios (store procedures, funciones, etc.) para importar los
-archivos antes mencionados. Tenga en cuenta que cada mes se recibir·n archivos de
+Ver archivo ‚ÄúDatasets para importar‚Äù en Miel.
+Se requiere que importe toda la informaci√≥n antes mencionada a la base de datos:
+‚Ä¢ Genere los objetos necesarios (store procedures, funciones, etc.) para importar los
+archivos antes mencionados. Tenga en cuenta que cada mes se recibir√°n archivos de
 novedades con la misma estructura, pero datos nuevos para agregar a cada maestro.
-ï Considere este comportamiento al generar el cÛdigo. Debe admitir la importaciÛn de
-novedades periÛdicamente.
-ï Cada maestro debe importarse con un SP distinto. No se aceptar·n scripts que
+‚Ä¢ Considere este comportamiento al generar el c√≥digo. Debe admitir la importaci√≥n de
+novedades peri√≥dicamente.
+‚Ä¢ Cada maestro debe importarse con un SP distinto. No se aceptar√°n scripts que
 realicen tareas por fuera de un SP.
-ï La estructura/esquema de las tablas a generar ser· decisiÛn suya. Puede que deba
-realizar procesos de transformaciÛn sobre los maestros recibidos para adaptarlos a la
+‚Ä¢ La estructura/esquema de las tablas a generar ser√° decisi√≥n suya. Puede que deba
+realizar procesos de transformaci√≥n sobre los maestros recibidos para adaptarlos a la
 estructura requerida.
-ï Los archivos CSV/JSON no deben modificarse. En caso de que haya datos mal
-cargados, incompletos, errÛneos, etc., deber· contemplarlo y realizar las correcciones
-en el fuente SQL. (SerÌa una excepciÛn si el archivo est· malformado y no es posible
+‚Ä¢ Los archivos CSV/JSON no deben modificarse. En caso de que haya datos mal
+cargados, incompletos, err√≥neos, etc., deber√° contemplarlo y realizar las correcciones
+en el fuente SQL. (Ser√≠a una excepci√≥n si el archivo est√° malformado y no es posible
 interpretarlo como JSON o CSV).
 */
 
@@ -39,7 +39,7 @@ CREATE OR ALTER PROCEDURE Importar_Excel
     @NombreTablaDestino VARCHAR(10)
 AS
 BEGIN
-    -- Habilitar el acceso a consultas distribuidas, si no est· habilitado
+    -- Habilitar el acceso a consultas distribuidas, si no est√° habilitado
     IF (SELECT value_in_use FROM sys.configurations WHERE name = 'Ad Hoc Distributed Queries') = 0
     BEGIN
         EXEC sp_configure 'show advanced options', 1;
@@ -58,14 +58,14 @@ BEGIN
                         ''Excel 12.0;HDR=YES;IMEX=1;Database=' + @RutaArchivo + ''',
                         ''SELECT * FROM [' + @NombreHoja + '$]'')';
 
-    -- Ejecutar el SQL din·mico
+    -- Ejecutar el SQL din√°mico
     EXEC sp_executesql @importacion;
 END
 GO
 
 -- ============================ STORED PROCEDURES IMPORTACION ============================
 
--- Habilitar Ad Hoc Distributed Queries (si no est· habilitado)
+-- Habilitar Ad Hoc Distributed Queries (si no est√° habilitado)
 sp_configure 'show advanced options', 1;
 RECONFIGURE;
 GO
@@ -91,7 +91,7 @@ BEGIN
 
 -- Uso OPENROWSET para importar datos del archivo Excel a la tabla temporal
 -- LTRIM RTRIM borran los espacios al inicio y al final de la celda
--- NULLIF(NULLIF(columna, ''), ' ') asegura que los valores vacÌos y los que contienen solo espacios se reemplacen por NULL
+-- NULLIF(NULLIF(columna, ''), ' ') asegura que los valores vac√≠os y los que contienen solo espacios se reemplacen por NULL
     INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
 	SELECT 
 		NULLIF(NULLIF(LTRIM(RTRIM([email personal])), ''), ' ') AS [email personal],
@@ -101,11 +101,11 @@ BEGIN
 		NULLIF(NULLIF(LTRIM(RTRIM(Sucursal)), ''), ' ') AS Sucursal,
 		NULLIF(NULLIF(LTRIM(RTRIM(Turno)), ''), ' ') AS Turno
 	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-                'Excel 12.0;HDR=YES;Database=' + @rutaArchivo, -- Uso el nombre correcto de la hoja
+                'Excel 12.0;HDR=YES;Database=' + @rutaArchivo + -- Uso el nombre correcto de la hoja
                 'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
 				
 
-	-- Variable para manejar el Ìndice del registro
+	-- Variable para manejar el √≠ndice del registro
     DECLARE @ind INT = 1
     DECLARE @cantRegistros INT
 
@@ -141,32 +141,30 @@ BEGIN
 		-- Si el empleado ya existe
 		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID)
 		BEGIN
-			EXEC gestion_sucursal.Modificar_Empleado
-				@id				= @empleadoID,
-				@cuil			= @empleadoCuil,
-				@email			= @emailPersonal,
-				@email_empresa	= @emailEmpresa,
-				@id_cargo		= @cargoID,
-				@id_sucursal	= @sucursalID,
-				@id_turno		= @turnoID
+			UPDATE gestion_sucursal.Empleado
+			SET
+				cuil = ISNULL(@empleadoCuil, cuil),
+				email = ISNULL(@emailPersonal, email),
+				email_empresa = ISNULL(@emailEmpresa, email_empresa),
+				id_cargo = ISNULL(@cargoID, id_cargo),
+				id_sucursal = ISNULL(@sucursalID, id_sucursal),
+				id_turno = ISNULL(@turnoID, id_turno)
+			WHERE id = @empleadoID
+			--PRINT 'Empleado modificado'
 		END
 		ELSE
 		BEGIN
-			EXEC gestion_sucursal.Insertar_Empleado
-				@cuil			= @empleadoCuil,
-				@email			= @emailPersonal,
-				@email_empresa	= @emailEmpresa,
-				@id_cargo		= @cargoID,
-				@id_sucursal	= @sucursalID,
-				@id_turno		= @turnoID
+			INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
+			VALUES (@empleadoCuil, @emailPersonal, @emailEmpresa, @cargoID, @sucursalID, @turnoID)
+			--PRINT 'Nuevo empleado insertado'
 		END
 	END
 	
     -- Limpiar la tabla temporal
     DROP TABLE #TempEmpleados;
 
-    -- Confirmar que todo se completÛ sin errores
-    PRINT 'ImportaciÛn y registro completados exitosamente.';
+    -- Confirmar que todo se complet√≥ sin errores
+    PRINT 'Importaci√≥n y registro completados exitosamente.';
 END;
-
+GO
 
