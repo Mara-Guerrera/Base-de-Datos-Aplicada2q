@@ -31,24 +31,24 @@ FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0',
 
 
 -- Insertar los datos en TipoProducto
-INSERT INTO gestion_productos.TipoProducto (nombre)
+INSERT INTO gestion_producto.TipoProducto (nombre)
 SELECT DISTINCT [Línea de producto]
 FROM #TempImport
 WHERE [Línea de producto] IS NOT NULL;
 
 SELECT *
-FROM gestion_productos.TipoProducto
+FROM gestion_producto.TipoProducto
 -- Ahora, vincular los productos a los tipos
-INSERT INTO gestion_productos.Catalogo (nombre_catalogo, id_tipoProducto)
+INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
 SELECT 
     Tabla.[Producto],
     Linea.id
-FROM #TempImport Tabla JOIN gestion_productos.TipoProducto Linea 
+FROM #TempImport Tabla JOIN gestion_producto.TipoProducto Linea 
 ON Tabla.[Línea de producto] = Linea.nombre COLLATE Modern_Spanish_CI_AI
 WHERE 
     Tabla.[Producto] IS NOT NULL;
 
-SELECT * FROM gestion_productos.Catalogo
+SELECT * FROM gestion_producto.Categoria
 WHERE id_tipoProducto = 11
 -- Limpiar la tabla temporal
 DROP TABLE #TempImport;
