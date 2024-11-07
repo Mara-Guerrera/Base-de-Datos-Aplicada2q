@@ -54,15 +54,15 @@ BEGIN
 	PRINT 'Sucursal insertada exitosamente.';
 END
 GO
-
+/*
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
 	@nombre VARCHAR(50),
 	@apellido VARCHAR(50),
 	@id_sucursal_empleado INT
 AS
 BEGIN
-	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Empleado
-				WHERE id_sucursal = @id_sucursal_empleado AND nombre = @nombre AND apellido = @apellido AND activo = 1 )
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado
+		WHERE id_sucursal = @id_sucursal_empleado AND nombre = @nombre AND apellido = @apellido AND activo = 1 )
     BEGIN
         PRINT 'Error: El empleado ya existe.';
         RETURN;
@@ -89,8 +89,71 @@ BEGIN
 		PRINT 'El id de sucursal: ' + CAST(@id_sucursal_empleado AS VARCHAR(10)) + ' no es válido.';
 	END
 END
+GO */
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
+	@cuil			CHAR(13), -- puede ser NULL
+	@email			VARCHAR(60), -- puede ser NULL
+	@email_empresa	VARCHAR(60),
+	@id_cargo		INT,
+	@id_sucursal	INT,
+	@id_turno		INT
+AS
+BEGIN
+	DECLARE @cantEmpleados INT
+	SELECT @cantEmpleados = COUNT(*) FROM gestion_sucursal.Empleado WHERE email_empresa = @email_empresa
+
+	IF @cantEmpleados > 1
+	BEGIN
+		PRINT 'Existe mas de un empleado con ese correo asignado por la empresa'; -- No deberia pasar
+		RETURN;
+	END
+		-- Si no hay empleados con ese email_empresa y la sucursal esta activa
+	IF @cantEmpleados = 0 AND EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
+	BEGIN
+		INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
+		VALUES (@cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
+		PRINT 'Nuevo empleado insertado con exito.'
+		RETURN;
+	END
+	-- Se que solo hay un empleado con dicho email_empresa
+	-- Busco su ID. Seria mas seguro con el cuil, pero no siempre me lo daran
+	DECLARE @empleadoID INT
+	SELECT @empleadoID = id FROM gestion_sucursal.Empleado WHERE email_empresa = @email_empresa
+
+	-- Si el empleado esta activo en la misma sucursal
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID AND id_sucursal = @id_sucursal AND activo = 1)
+    BEGIN
+        PRINT 'Error: El empleado ya existe.';
+        RETURN;
+    END
+
+	-- Si la sucursal esta activa
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
+	BEGIN
+	--  pero el empleado no
+		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID AND activo = 0)
+		BEGIN
+			UPDATE gestion_sucursal.Empleado
+            		SET activo = 1
+            		WHERE email_empresa = @email_empresa AND activo = 0;
+			
+			PRINT 'El empleado se dió de alta.';
+			RETURN;
+		END
+
+		INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
+		VALUES (@cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
+		PRINT 'Nuevo empleado insertado con exito.'
+	END
+	ELSE
+	BEGIN
+		PRINT 'El id de sucursal: ' + CAST(@id_sucursal_empleado AS VARCHAR(10)) + ' no es válido.';
+	END
+END
 GO
 -- NO HAY INSERTAR_TIPO_CLIENTE
+
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Cliente
 	@name VARCHAR(50),
 	@surname VARCHAR(50),
