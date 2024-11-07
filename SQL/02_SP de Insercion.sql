@@ -93,11 +93,11 @@ GO */
 
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
 	@cuil			CHAR(13), -- puede ser NULL
-	@email			VARCHAR(60), -- puede ser NULL
-	@email_empresa	VARCHAR(60),
-	@id_cargo		INT,
-	@id_sucursal	INT,
-	@id_turno		INT
+	@email			VARCHAR(60), -- podria ser NULL
+	@email_empresa		VARCHAR(60) NOT NULL,
+	@id_cargo		INT NOT NULL,
+	@id_sucursal		INT NOT NULL,
+	@id_turno		INT NOT NULL
 AS
 BEGIN
 	DECLARE @cantEmpleados INT
