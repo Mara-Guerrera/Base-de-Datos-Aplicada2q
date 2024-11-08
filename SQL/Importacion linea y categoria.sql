@@ -63,7 +63,7 @@ BEGIN
 	WITH Duplicados_Modificados AS (
 	    SELECT 
     c.id AS id_categoria,  
-    tp_nuevo.id AS id_tipoProducto_nuevo
+    tp.id AS id_tipoProducto_nuevo
    FROM #TempImport te
   JOIN gestion_producto.Categoria c ON te.categoria       = c.nombre 
   JOIN gestion_producto.TipoProducto tp ON    te.tipo_producto = tp.nombre
