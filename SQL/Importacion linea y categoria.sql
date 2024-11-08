@@ -62,13 +62,12 @@ BEGIN
 	)
 	WITH Duplicados_Modificados AS (
 	    SELECT 
-	        c.id AS id_categoria,  
-	        tp_nuevo.id AS id_tipoProducto_nuevo        -- ID del tipo de producto de TempImport
-	    FROM #TempImport te
-	    JOIN gestion_producto.Categoria c ON te.categoria = c.nombre 
-	    JOIN gestion_producto.TipoProducto tp_actual ON tp_actual.id = c.id_tipoProducto 
-	    JOIN gestion_producto.TipoProducto tp_nuevo ON te.tipo_producto = tp_nuevo.nombre --Hallo el id del Tipo de Producto que llega por Archivo.
-	    WHERE tp_actual.id != tp_nuevo.id   -- Filtramos los casos donde el tipo de producto es diferente
+    c.id AS id_categoria,  
+    tp_nuevo.id AS id_tipoProducto_nuevo
+   FROM #TempImport te
+  JOIN gestion_producto.Categoria c ON te.categoria       = c.nombre 
+  JOIN gestion_producto.TipoProducto tp ON    te.tipo_producto = tp.nombre
+WHERE c.id_tipoProducto != tp.id; 
 	)
 	UPDATE c
 	SET c.id_tipoProducto = dm.id_tipoProducto_nuevo
