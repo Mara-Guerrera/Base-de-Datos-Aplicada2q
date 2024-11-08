@@ -30,8 +30,54 @@ cargados, incompletos, erróneos, etc., deberá contemplarlo y realizar las corr
 en el fuente SQL. (Sería una excepción si el archivo está malformado y no es posible
 interpretarlo como JSON o CSV).
 */
+-- ============================ STORED PROCEDURES IMPORTACION ============================
 
-CREATE OR ALTER PROCEDURE ImportarEmpleados
+-- Habilitar Ad Hoc Distributed Queries (si no está habilitado)
+sp_configure 'show advanced options', 1;
+RECONFIGURE;
+GO
+sp_configure 'Ad Hoc Distributed Queries', 1;
+RECONFIGURE;
+GO
+	
+-- ============================ SP IMPORTACION SUCURSAL ============================
+
+CREATE OR ALTER PROCEDURE Importar_Sucursales
+--    @rutaArchivo VARCHAR(100)
+AS
+BEGIN
+    -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
+    CREATE TABLE #TempSucursales (
+        Ciudad				VARCHAR(30),
+		[Reemplazar por]	VARCHAR(60),
+        direccion			VARCHAR(100),
+		Horario				VARCHAR(50),
+		Telefono			CHAR(9),
+    );
+	
+    INSERT INTO #TempSucursales (Ciudad, [Reemplazar por], direccion, Horario, Telefono)
+	SELECT 
+		Ciudad, [Reemplazar por], direccion, Horario, Telefono
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+	'Excel 12.0;HDR=YES;Database=C:\Users\usuario\Documents\6) BD aplicadas\TP Reporte de Ventas\TP_integrador_Archivos\Informacion_complementaria.xlsx;HDR=NO',
+	'SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [sucursal$]');
+			
+	SELECT * FROM #TempSucursales
+
+	INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono)
+	SELECT ts.[Reemplazar por], ts.direccion, ts.Horario, ts.Telefono
+	FROM #TempSucursales ts
+	WHERE nombre = ts.Ciudad
+
+	DROP TABLE #TempMediosPago
+	PRINT 'Importación y registro de Sucursales completados exitosamente.';
+END
+GO
+EXEC Importar_Sucursales
+GO
+-- ============================ SP IMPORTACION EMPLEADOS ============================
+	
+CREATE OR ALTER PROCEDURE Importar_Empleados
 AS
 BEGIN
     CREATE TABLE #TempEmpleados (
@@ -107,17 +153,40 @@ BEGIN
 END;
 GO
 EXEC ImportarEmpleados
-
--- ============================ STORED PROCEDURES IMPORTACION ============================
-
--- Habilitar Ad Hoc Distributed Queries (si no está habilitado)
-sp_configure 'show advanced options', 1;
-RECONFIGURE;
 GO
-sp_configure 'Ad Hoc Distributed Queries', 1;
-RECONFIGURE;
+	
+-- ============================ SP IMPORTACION MEDIO DE PAGO ============================
+
+CREATE OR ALTER PROCEDURE Importar_MedioDePago
+ --   @rutaArchivo VARCHAR(100)
+AS
+BEGIN
+    -- Declaro la tabla temporal: No hay encabezados asi que los campos se llaman como quise
+	CREATE TABLE #TempMediosPago(
+		Nombre			VARCHAR(11),
+		Descripcion		VARCHAR(30)
+	);
+
+	INSERT INTO #TempMediosPago (Nombre, Descripcion)
+	SELECT *
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+    'Excel 12.0;HDR=NO;IMEX=1;Database=C:\Users\usuario\Documents\6) BD aplicadas\TP Reporte de Ventas\TP_integrador_Archivos\Informacion_complementaria.xlsx;',
+    'SELECT * FROM [medios de pago$B3:C1000]') -- Aquí especifico la fila de inicio (tercera fila) y el rango de columnas
+
+	SELECT * FROM #TempMediosPago;
+
+	INSERT INTO gestion_venta.MedioDePago (nombre, descripcion)
+	SELECT Nombre, Descripcion
+	FROM #TempMediosPago
+	WHERE Nombre IS NOT NULL AND Descripcion IS NOT NULL
+
+	DROP TABLE #TempMediosPago
+	PRINT 'Importación y registro de Medios de Pago: Se completaron exitosamente.';
+END
 GO
 
+
+/*
 -- ============================ SP IMPORTACION EMPLEADOS ============================
 
 CREATE OR ALTER PROCEDURE ImportarEmpleados
@@ -212,4 +281,4 @@ BEGIN
     PRINT 'Importación y registro completados exitosamente.';
 END;
 GO
-
+*/
