@@ -16,14 +16,14 @@ cargados, incompletos, erróneos, etc., deberá contemplarlo y realizar las corr
 en el fuente SQL. (Sería una excepción si el archivo está malformado y no es posible
 interpretarlo como JSON o CSV).*/
 
-sp_configure 'show advanced options', 1;
+/*sp_configure 'show advanced options', 1;
 RECONFIGURE;
 GO
 sp_configure 'Ad Hoc Distributed Queries', 1;
 RECONFIGURE;
-GO
---EXEC sp_enum_oledb_providers;
--- Importar los datos del Excel
+GO*/
+
+--DROP TABLE #TempImport
 SELECT * INTO #TempImport
 FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
                 'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
@@ -36,8 +36,6 @@ SELECT DISTINCT [Línea de producto]
 FROM #TempImport
 WHERE [Línea de producto] IS NOT NULL;
 
-SELECT *
-FROM gestion_producto.TipoProducto
 -- Ahora, vincular los productos a los tipos
 INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
 SELECT 
@@ -48,23 +46,20 @@ ON Tabla.[Línea de producto] = Linea.nombre COLLATE Modern_Spanish_CI_AI
 WHERE 
     Tabla.[Producto] IS NOT NULL;
 
-SELECT * FROM gestion_producto.Categoria
-WHERE id_tipoProducto = 11
 -- Limpiar la tabla temporal
 DROP TABLE #TempImport;
-SELECT * INTO #TempImport
+SELECT * INTO #TempMedios
 FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
                 'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
                 'SELECT [Medio de pago] FROM [medios de pago$]');
 
-SELECT * FROM #TempImport
+
 INSERT INTO gestion_venta.MedioDePago(descripcion)
 SELECT [Medio de pago]
-FROM #TempImport
-DROP TABLE #TempImport;
+FROM #TempMedios
+DROP TABLE #TempMedios;
 
 
-DROP TABLE #TempCatalogo
 CREATE TABLE #TempCatalogo
 (
     id INT,         
@@ -79,10 +74,30 @@ BULK INSERT #TempCatalogo
 FROM 'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
 WITH
 (
-	FIRSTROW = 2 ,
+	FORMAT = 'CSV',
+    FIRSTROW = 2,
     FIELDTERMINATOR = ',',  
-	ROWTERMINATOR = '0x0a'
+    CODEPAGE = '65001',
+    ROWTERMINATOR = '0x0a'   
 );
 SELECT * 
 FROM #TempCatalogo
 
+/*WITH CTE AS (
+	SELECT *
+	FROM #TempCatalogo te
+	INNER JOIN gestion_producto.TipoProducto tp ON tp.nombre 
+)*/
+
+DROP TABLE #TempCatalogo
+--Consultas y borrados--
+SELECT * FROM gestion_producto.Categoria
+SELECT * FROM gestion_producto.TipoProducto 
+SELECT * FROM gestion_venta.MedioDePago 
+SELECT * FROM #TempImport
+DELETE FROM gestion_venta.MedioDePago
+DELETE FROM gestion_producto.Categoria
+DELETE FROM gestion_producto.TipoProducto 
+DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
+DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
+DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
