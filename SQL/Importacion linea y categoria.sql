@@ -24,27 +24,52 @@ RECONFIGURE;
 GO*/
 
 --DROP TABLE #TempImport
-SELECT * INTO #TempImport
-FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+CREATE OR ALTER PROCEDURE Importar_TipoProducto
+AS
+BEGIN
+	SELECT 
+		[Línea de producto] AS tipo_producto,
+		[Producto] AS categoria
+	INTO #TempImport
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
                 'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
                 'SELECT [Línea de producto], [Producto] FROM [Clasificacion Productos$B:C]');
 
+	SELECT * FROM #TempImport
+	--DROP TABLE #TempImport
+	WITH DuplicadosTipo AS	(
+		SELECT DISTINCT te.tipo_producto AS tipo_duplicado
+		FROM #TempImport te JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre
+	)
+	INSERT INTO gestion_producto.TipoProducto (nombre)
+	SELECT DISTINCT tipo_producto
+	FROM #TempImport te
+	WHERE tipo_producto IS NOT NULL
+	AND NOT EXISTS (
+          SELECT 1
+          FROM DuplicadosTipo d
+          WHERE d.tipo_duplicado = te.tipo_producto
+     );
+	WITH DuplicadosCategoria AS	(
+		SELECT --c.id AS id_tipoProducto,
+			c.nombre categoria,
+			tp.nombre tipo_producto,
+			te.tipo_producto,
+			te.categoria categoria_nueva 
+		FROM gestion_producto.Categoria c JOIN gestion_producto.TipoProducto tp ON c.id_tipoProducto = tp.id
+		JOIN #TempImport te ON te.categoria = c.nombre AND te.tipo_producto = tp.nombre
+		WHERE c.nombre = te.categoria
+	)
 
--- Insertar los datos en TipoProducto
-INSERT INTO gestion_producto.TipoProducto (nombre)
-SELECT DISTINCT [Línea de producto]
-FROM #TempImport
-WHERE [Línea de producto] IS NOT NULL;
-
--- Ahora, vincular los productos a los tipos
-INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
-SELECT 
-    Tabla.[Producto],
-    Linea.id
-FROM #TempImport Tabla JOIN gestion_producto.TipoProducto Linea 
-ON Tabla.[Línea de producto] = Linea.nombre COLLATE Modern_Spanish_CI_AI
-WHERE 
-    Tabla.[Producto] IS NOT NULL;
+	INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
+	SELECT 
+		te.categoria,
+		tp.id
+	FROM #TempImport te JOIN gestion_producto.TipoProducto tp
+	ON te.tipo_producto = tp.nombre 
+	WHERE 
+    te.categoria IS NOT NULL;
+END
 
 -- Limpiar la tabla temporal
 DROP TABLE #TempImport;
