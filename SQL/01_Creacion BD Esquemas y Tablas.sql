@@ -76,7 +76,7 @@ BEGIN
 END
 GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ==================
-
+/*
 IF NOT EXISTS (
     SELECT 1
     FROM sys.tables
@@ -92,7 +92,7 @@ BEGIN
 		CONSTRAINT PK_CiudadID PRIMARY KEY (id)
 	)
 END
-GO
+GO*/
 
 IF NOT EXISTS (
     SELECT 1
@@ -103,13 +103,17 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_sucursal.Sucursal
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
 		nombre				VARCHAR(30),
-		id_ciudad			INT,
+		--id_ciudad			INT,
+		direccion			VARCHAR(100),
+		horario				VARCHAR(50),
+		telefono			CHAR(9),
 		activo				BIT DEFAULT 1,
 
+		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id),
-		CONSTRAINT FK_CiudadID FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id)
+		--CONSTRAINT FK_CiudadID1 FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id)
 	)
 END
 GO
@@ -227,18 +231,36 @@ BEGIN
 		apellido			VARCHAR(50),
 		id_tipo				INT, -- Normal / Member
 		id_genero			INT, -- Male / Female
-		id_ciudad			INT,
+		--id_ciudad			INT,
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_ClienteID PRIMARY KEY (id),
-		CONSTRAINT FK_CiudadID2 FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id),
+		--CONSTRAINT FK_CiudadID2 FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id),
 		CONSTRAINT FK_TipoCliente FOREIGN KEY (id_tipo) REFERENCES gestion_sucursal.TipoCliente(id),
 		CONSTRAINT FK_Genero FOREIGN KEY (id_genero) REFERENCES gestion_sucursal.Genero(id)
 	)
 END
 GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_PRODUCTO ==================
+	
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.tables
+    WHERE name = 'Proveedor'
+    AND schema_id = SCHEMA_ID('gestion_producto')
+)
+BEGIN
+    CREATE TABLE gestion_producto.Proveedor
+	(
+		id			INT IDENTITY(1,1),
+		nombre		VARCHAR(40),
+		activo		BIT DEFAULT 1,
 
+		CONSTRAINT PK_ProveedorID PRIMARY KEY (id)
+	)
+END
+GO
+	
 IF NOT EXISTS (
     SELECT 1
     FROM sys.tables
@@ -286,18 +308,41 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_producto.Producto
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
 		descripcion			VARCHAR(50),
 		precio				DECIMAL(7,2),
-		id_categoria			INT,
+		id_categoria		INT,
+		--id_tipoProducto		INT,
 		precio_ref			DECIMAL(7,2),
 		unidad_ref			CHAR(3),
-		cant_por_unidad			VARCHAR(25),
+		cant_por_unidad		VARCHAR(25),
+		id_proveedor		INT, -- NUEVO
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_ProductoPrecio CHECK (precio > 0),
 		CONSTRAINT PK_ProductoID PRIMARY KEY (id),
-		CONSTRAINT FK_CategoriaID FOREIGN KEY (id_categoria) REFERENCES gestion_producto.Categoria(id)
+		CONSTRAINT FK_CategoriaID FOREIGN KEY (id_categoria) REFERENCES gestion_producto.Categoria(id),
+		--CONSTRAINT FK_TipoProductoID FOREIGN KEY (id_tipoProducto) REFERENCES gestion_producto.TipoProducto(id),
+		CONSTRAINT FK_ProveedorID FOREIGN KEY (id_proveedor) REFERENCES gestion_producto.Proveedor(id)
+	)
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.tables
+    WHERE name = 'AccesorioElectronico'
+    AND schema_id = SCHEMA_ID('gestion_producto')
+)
+BEGIN
+    CREATE TABLE gestion_producto.AccesorioElectronico
+	(
+		id				INT IDENTITY(1,1),
+		nombre			VARCHAR(30),
+		precioDolar		DECIMAL(6,2),
+		activo			BIT DEFAULT 1,
+
+		CONSTRAINT PK_AccesorioElectronicoID PRIMARY KEY (id)
 	)
 END
 GO
@@ -312,8 +357,9 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_venta.MedioDePago
 	(
-		id			INT IDENTITY(1,1),
-		descripcion		VARCHAR(30),
+		id				INT IDENTITY(1,1),
+		nombre			VARCHAR(11),
+		descripcion		VARCHAR(30), -- NUEVO
 		activo			BIT DEFAULT 1,
 		
 		CONSTRAINT PK_MedioDePagoID PRIMARY KEY (id)
@@ -331,8 +377,8 @@ BEGIN
     CREATE TABLE gestion_venta.TipoFactura
 	(
 		id		INT IDENTITY(1,1),
-		nombre		CHAR(1),
-		activo		BIT DEFAULT 1,
+		nombre	CHAR(1),
+		activo	BIT DEFAULT 1,
 
 		CONSTRAINT PK_TipoFacturaID PRIMARY KEY (id)
 	)
@@ -348,12 +394,12 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_venta.Factura
 	(
-		id				CHAR(11),
-		id_tipoFactura			INT,
+		id					CHAR(11),
+		id_tipoFactura		INT,
 		id_cliente			INT, -- tipo, genero
 		fecha				DATE,
 		hora				TIME,
-		id_medioDePago			INT, -- descripcion
+		id_medioDePago		INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
 		pagada				BIT DEFAULT 0,
@@ -379,18 +425,18 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_venta.DetalleVenta
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
 		id_producto			INT, -- descripcion, precio, cantidad
 		id_factura			CHAR(11),
 		cantidad			INT,
 		subtotal			DECIMAL(8,2),
-		precio_unitario			DECIMAL(7,2),
+		precio_unitario		DECIMAL(7,2),
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_DetalleVentaCantidad CHECK (cantidad > 0),
 		CONSTRAINT Ck_DetalleVentaSubtotal CHECK (subtotal > 0),
 		CONSTRAINT PK_DetalleVentaID PRIMARY KEY (id, id_factura),
-		CONSTRAINT FK_FacturaID FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id_factura),
+		CONSTRAINT FK_FacturaID FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
 		CONSTRAINT FK_ProductoID2 FOREIGN KEY(id_producto) REFERENCES gestion_producto.Producto(id)
 	)
 END
