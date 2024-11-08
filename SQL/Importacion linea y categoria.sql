@@ -52,4 +52,37 @@ SELECT * FROM gestion_producto.Categoria
 WHERE id_tipoProducto = 11
 -- Limpiar la tabla temporal
 DROP TABLE #TempImport;
+SELECT * INTO #TempImport
+FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+                'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
+                'SELECT [Medio de pago] FROM [medios de pago$]');
+
+SELECT * FROM #TempImport
+INSERT INTO gestion_venta.MedioDePago(descripcion)
+SELECT [Medio de pago]
+FROM #TempImport
+DROP TABLE #TempImport;
+
+
+DROP TABLE #TempCatalogo
+CREATE TABLE #TempCatalogo
+(
+    id INT,         
+    category VARCHAR(50),
+	name NVARCHAR(100),
+	price VARCHAR(50),
+	reference_price VARCHAR(50),
+	reference_unit VARCHAR(50),
+	fecha VARCHAR(50)
+);
+BULK INSERT #TempCatalogo
+FROM 'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
+WITH
+(
+	FIRSTROW = 2 ,
+    FIELDTERMINATOR = ',',  
+	ROWTERMINATOR = '0x0a'
+);
+SELECT * 
+FROM #TempCatalogo
 
