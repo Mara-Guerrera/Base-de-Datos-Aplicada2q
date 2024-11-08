@@ -402,9 +402,9 @@ BEGIN
 		id_medioDePago		INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
-		pagada				BIT DEFAULT 0,
+		--pagada				BIT DEFAULT 0,
 		activo				BIT DEFAULT 1,
-		
+		--Actualizar la primary key a un identity 
 		CONSTRAINT Ck_FacturaID CHECK (id LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_FacturaID PRIMARY KEY (id),
 		CONSTRAINT FK_TipoFactura FOREIGN KEY (id_tipoFactura) REFERENCES gestion_venta.TipoFactura(id),
