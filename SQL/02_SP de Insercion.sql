@@ -1,59 +1,124 @@
-﻿-- ============================ STORE PROCEDURES INSERCION ============================
+-- ============================ STORE PROCEDURES INSERCION ============================
 USE Com5600G05
 GO
 -- ============================ SP INSERCION GESTION_SUCURSAL =======================
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Ciudad
-	@nombre VARCHAR(50)
-AS
-BEGIN
-	IF NOT EXISTS(SELECT 1 FROM gestion_sucursal.Ciudad WHERE nombre = @nombre COLLATE Latin1_General_CI_AI)
-	BEGIN
-		INSERT INTO gestion_sucursal.Ciudad(nombre) VALUES (@nombre)
-	END
-	ELSE
-	BEGIN
-		PRINT 'La ciudad a insertar ya existe.'
-		RETURN; -- acá no haría falta un RETURN porque no hay más sentencias fuera de este IF
-	END
-END
-GO
+-- CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Ciudad
+-- 	@nombre VARCHAR(50)
+-- AS
+-- BEGIN
+-- 	IF NOT EXISTS(SELECT 1 FROM gestion_sucursal.Ciudad WHERE nombre = @nombre COLLATE Latin1_General_CI_AI)
+-- 	BEGIN
+-- 		INSERT INTO gestion_sucursal.Ciudad(nombre) VALUES (@nombre)
+-- 	END
+-- 	ELSE
+-- 	BEGIN
+-- 		PRINT 'La ciudad a insertar ya existe.'
+-- 		RETURN; -- acá no haría falta un RETURN porque no hay más sentencias fuera de este IF
+-- 	END
+-- END
+-- GO
 
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Sucursal
     @nombre VARCHAR(30),
-	@id_ciudad INT
+    @direccion VARCHAR(100),
+    @horario VARCHAR(50),
+    @telefono CHAR(9)
 AS
 BEGIN
-
-	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id_ciudad)
+    -- Verificar si el teléfono tiene el formato correcto
+    IF NOT @telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
     BEGIN
-        PRINT 'Error: La ciudad especificada no existe.';
+        PRINT 'Error: El formato del teléfono no es válido. Debe ser 1234-5678.';
         RETURN;
     END
 
-    IF EXISTS (	SELECT 1 FROM gestion_sucursal.Sucursal
-				WHERE nombre = @nombre COLLATE Latin1_General_CI_AI and activo = 1 AND id_ciudad = @id_ciudad)
+    -- Verificar si la sucursal ya existe (por nombre y teléfono)
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 1)
     BEGIN
-        PRINT 'Error: La sucursal ya existe.';
-		RETURN;
+        PRINT 'Error: La sucursal con ese nombre y teléfono ya existe.';
+        RETURN;
     END
 
-	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Sucursal
-				WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 0 AND id_ciudad = @id_ciudad)
+    -- Verificar si la sucursal está inactiva, en cuyo caso se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND telefono = @telefono AND activo = 0)
     BEGIN
         UPDATE gestion_sucursal.Sucursal
-		SET activo = 1
-		WHERE nombre = @nombre AND id_ciudad = @id_ciudad AND activo = 0;
-		
-		PRINT 'La sucursal se dió de alta.';
-		RETURN;
+        SET activo = 1, direccion = @direccion, horario = @horario, telefono = @telefono
+        WHERE nombre = @nombre AND telefono = @telefono AND activo = 0;
+        
+        PRINT 'La sucursal se dió de alta.';
+        RETURN;
     END
 
-	INSERT INTO gestion_sucursal.Sucursal(nombre, id_ciudad, activo)
-	VALUES (@nombre, @id_ciudad, 1);
-	PRINT 'Sucursal insertada exitosamente.';
+    -- Insertar nueva sucursal
+    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, activo)
+    VALUES (@nombre, @direccion, @horario, @telefono, 1);
+
+    PRINT 'Sucursal insertada exitosamente.';
 END
 GO
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Turno
+    @descripcion VARCHAR(16)
+AS
+BEGIN
+    -- Verificar si el turno con la misma descripción ya existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe un turno con esa descripción.';
+        RETURN;
+    END
+
+    -- Si el turno está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Turno
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        
+        PRINT 'El turno se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo turno
+    INSERT INTO gestion_sucursal.Turno (descripcion, activo)
+    VALUES (@descripcion, 1);
+
+    PRINT 'Turno insertado exitosamente.';
+END
+GO
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Cargo
+    @nombre VARCHAR(20)
+AS
+BEGIN
+    -- Verificar si el cargo con el mismo nombre ya existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe un cargo con ese nombre.';
+        RETURN;
+    END
+
+    -- Si el cargo está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Cargo
+        SET activo = 1
+        WHERE nombre = @nombre AND activo = 0;
+        
+        PRINT 'El cargo se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo cargo
+    INSERT INTO gestion_sucursal.Cargo (nombre, activo)
+    VALUES (@nombre, 1);
+
+    PRINT 'Cargo insertado exitosamente.';
+END
+GO
+
 /*
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
 	@nombre VARCHAR(50),
@@ -152,27 +217,80 @@ BEGIN
 	END
 END
 GO
--- NO HAY INSERTAR_TIPO_CLIENTE
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_TipoCliente
+    @descripcion VARCHAR(10)
+AS
+BEGIN
+    -- Verificar si el tipo de cliente con la misma descripción ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe un tipo de cliente con esa descripción.';
+        RETURN;
+    END
+
+    -- Si el tipo de cliente existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.TipoCliente
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        
+        PRINT 'El tipo de cliente se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo tipo de cliente
+    INSERT INTO gestion_sucursal.TipoCliente (descripcion, activo)
+    VALUES (@descripcion, 1);
+
+    PRINT 'Tipo de cliente insertado exitosamente.';
+END
+GO
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Genero
+    @descripcion VARCHAR(10)
+AS
+BEGIN
+    -- Verificar si el género con la misma descripción ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe un género con esa descripción.';
+        RETURN;
+    END
+
+    -- Si el género existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Genero
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        
+        PRINT 'El género se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo género
+    INSERT INTO gestion_sucursal.Genero (descripcion, activo)
+    VALUES (@descripcion, 1);
+
+    PRINT 'Género insertado exitosamente.';
+END
+GO
 
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Cliente
 	@name VARCHAR(50),
 	@surname VARCHAR(50),
 	@type INT,
 	@gender INT,
-	@id_city INT
+	--@id_city INT
 AS
 BEGIN
 	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
 				WHERE nombre = @name  COLLATE Latin1_General_CI_AI AND apellido = @surname  COLLATE Latin1_General_CI_AI
-				AND id_tipo = @type AND id_genero = @gender AND id_ciudad = @id_city AND activo = 1 )
+				AND id_tipo = @type AND id_genero = @gender AND activo = 1 )
 	BEGIN
 		PRINT 'El cliente ya existe.';
-		RETURN;
-	END
-
-	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id_city)
-	BEGIN
-		PRINT 'La ciudad no existe.';
 		RETURN;
 	END
 
@@ -191,24 +309,54 @@ BEGIN
 
 	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
 				WHERE nombre = @name  COLLATE Latin1_General_CI_AI AND apellido = @surname  COLLATE Latin1_General_CI_AI
-				AND id_tipo = @type AND id_genero = @gender AND id_ciudad = @id_city AND activo = 0 )
+				AND id_tipo = @type AND id_genero = @gender AND activo = 0 )
 	BEGIN
 		UPDATE gestion_sucursal.Cliente
         SET activo = 1
         WHERE nombre = @name  COLLATE Latin1_General_CI_AI AND apellido = @surname  COLLATE Latin1_General_CI_AI
-		AND id_tipo = @type AND id_genero = @gender AND id_ciudad = @id_city AND activo = 0
+		AND id_tipo = @type AND id_genero = @gender AND activo = 0
 
 		PRINT 'El cliente se dió de alta.';
 		RETURN;
 	END
 
 	--Inserción del nuevo cliente
-	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero, id_ciudad,activo)
-	VALUES (@name, @surname, @type, @gender, @id_city,1);
+	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,activo)
+	VALUES (@name, @surname, @type, @gender,1);
 	PRINT 'Cliente insertado con éxito.';
 END
 GO
 -- ============================ SP INSERCION GESTION_PRODUCTO ============================
+
+CREATE OR ALTER PROCEDURE gestion_producto.Insertar_Proveedor
+    @nombre VARCHAR(40)
+AS
+BEGIN
+    -- Verificar si el proveedor con el mismo nombre ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe un proveedor con ese nombre.';
+        RETURN;
+    END
+
+    -- Si el proveedor existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND activo = 0)
+    BEGIN
+        UPDATE gestion_producto.Proveedor
+        SET activo = 1
+        WHERE nombre = @nombre AND activo = 0;
+        
+        PRINT 'El proveedor se dió de alta nuevamente.';
+        RETURN;
+    END
+
+    -- Insertar nuevo proveedor
+    INSERT INTO gestion_producto.Proveedor (nombre, activo)
+    VALUES (@nombre, 1);
+
+    PRINT 'Proveedor insertado exitosamente.';
+END
+GO
 
 CREATE OR ALTER PROCEDURE gestion_producto.Insertar_Tipo_Producto 
 	@nombre VARCHAR(40)
@@ -240,81 +388,240 @@ BEGIN
 END
 GO
 
--- FALTA INSERTAR_CATEGORIA
-
--- Cambio campo id_tipoProducto por id_categoria
-CREATE OR ALTER PROCEDURE gestion_producto.Insertar_Producto
-	@descrip VARCHAR(50),
-	@precio DECIMAL(7,2),
-	@id_categoria INT,
-	@precio_ref DECIMAL(7,2) = NULL,
-	@unidad_ref CHAR(3) = NULL,
-	@cant_por_unidad VARCHAR(25) = NULL
+CREATE OR ALTER PROCEDURE gestion_producto.Insertar_Categoria
+    @nombre VARCHAR(50),
+    @id_tipoProducto INT
 AS
 BEGIN
-	IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipo and activo = 1)
-	BEGIN
-		IF EXISTS (	SELECT 1 FROM gestion_producto.Producto
-					WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI
-					AND id_categoria = @id_categoria AND activo = 1 )
-		BEGIN
-			PRINT 'Error: El Producto ya existe.';
-			RETURN;
-		END
+    -- Verificar si el tipo de producto existe
+    IF NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
+    BEGIN
+        PRINT 'Error: El tipo de producto especificado no existe.';
+        RETURN;
+    END
 
-		IF EXISTS (	SELECT 1 FROM gestion_producto.Producto
-					WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI
-					AND id_categoria = @id_categoria AND activo = 0 )
-		BEGIN
-			UPDATE gestion_producto.Producto
-            SET activo = 1
-            WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI AND id_categoria = @id_categoria AND activo = 0;
-			
-			PRINT 'El Producto se dió de alta.';
-			RETURN;
-		END
+    -- Verificar si la categoría con el mismo nombre ya existe y está activa
+    IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND id_tipoProducto = @id_tipoProducto AND activo = 1)
+    BEGIN
+        PRINT 'Error: Ya existe una categoría con ese nombre para el tipo de producto especificado.';
+        RETURN;
+    END
 
-		INSERT INTO gestion_producto.Producto(descripcion, precio, id_categoria, precio_ref, unidad_ref, cant_por_unidad, activo)
-		VALUES(@descrip, @precio, @id_categoria, @precio_ref, @unidad_ref, @cant_por_unidad, 1);
-		PRINT 'Nuevo Producto insertado con exito.'
-		RETURN;
-	END
-	ELSE
-	BEGIN
-		PRINT 'El tipo de producto no existe.';
-	END
+    -- Reactivar la categoría si ya existe pero está inactiva
+    IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE nombre = @nombre COLLATE Latin1_General_CI_AI AND id_tipoProducto = @id_tipoProducto AND activo = 0)
+    BEGIN
+        UPDATE gestion_producto.Categoria
+        SET activo = 1
+        WHERE nombre = @nombre AND id_tipoProducto = @id_tipoProducto AND activo = 0;
+        
+        PRINT 'La categoría se reactivó exitosamente.';
+        RETURN;
+    END
+
+    -- Insertar nueva categoría
+    INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto, activo)
+    VALUES (@nombre, @id_tipoProducto, 1);
+
+    PRINT 'Categoría insertada exitosamente.';
+END
+GO
+
+CREATE OR ALTER PROCEDURE gestion_producto.Insertar_Producto
+    @descrip VARCHAR(50),
+    @precio DECIMAL(7,2),
+    @id_categoria INT,
+    @precio_ref DECIMAL(7,2) = NULL,
+    @unidad_ref CHAR(3) = NULL,
+    @cant_por_unidad VARCHAR(25) = NULL,
+    @id_proveedor INT
+AS
+BEGIN
+    -- Verificar si el proveedor existe y está activo
+    IF NOT EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor AND activo = 1)
+    BEGIN
+        PRINT 'Error: El proveedor especificado no existe o está inactivo.';
+        RETURN;
+    END
+
+    -- Verificar si la categoría existe y está activa
+    IF NOT EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria AND activo = 1)
+    BEGIN
+        PRINT 'Error: La categoría especificada no existe o está inactiva.';
+        RETURN;
+    END
+
+    -- Verificar si el producto ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_producto.Producto
+               WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI
+               AND id_categoria = @id_categoria
+               AND id_proveedor = @id_proveedor
+               AND activo = 1)
+    BEGIN
+        PRINT 'Error: El producto ya existe para el proveedor especificado.';
+        RETURN;
+    END
+
+    -- Reactivar el producto si ya existe pero está inactivo
+    IF EXISTS (SELECT 1 FROM gestion_producto.Producto
+               WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI
+               AND id_categoria = @id_categoria
+               AND id_proveedor = @id_proveedor
+               AND activo = 0)
+    BEGIN
+        UPDATE gestion_producto.Producto
+        SET activo = 1
+        WHERE descripcion = @descrip COLLATE Latin1_General_CI_AI
+          AND id_categoria = @id_categoria
+          AND id_proveedor = @id_proveedor
+          AND activo = 0;
+        
+        PRINT 'El producto se reactivó exitosamente.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo producto
+    INSERT INTO gestion_producto.Producto (descripcion, precio, id_categoria, precio_ref, unidad_ref, cant_por_unidad, id_proveedor, activo)
+    VALUES (@descrip, @precio, @id_categoria, @precio_ref, @unidad_ref, @cant_por_unidad, @id_proveedor, 1);
+
+    PRINT 'Nuevo producto insertado con éxito.';
+END
+GO
+
+CREATE OR ALTER PROCEDURE gestion_producto.Insertar_AccesorioElectronico
+    @nombre VARCHAR(30),
+    @precioDolar DECIMAL(6,2)
+AS
+BEGIN
+    -- Validar que el precio sea positivo
+    IF @precioDolar <= 0
+    BEGIN
+        PRINT 'Error: El precio debe ser mayor a 0.';
+        RETURN;
+    END
+
+    -- Verificar si el accesorio electrónico ya existe y está activo
+    IF EXISTS (SELECT 1
+               FROM gestion_producto.AccesorioElectronico
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 1)
+    BEGIN
+        PRINT 'Error: El accesorio electrónico ya existe.';
+        RETURN;
+    END
+
+    -- Reactivar el accesorio si ya existe pero está inactivo
+    IF EXISTS (SELECT 1
+               FROM gestion_producto.AccesorioElectronico
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 0)
+    BEGIN
+        UPDATE gestion_producto.AccesorioElectronico
+        SET activo = 1,
+            precioDolar = @precioDolar
+        WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+          AND activo = 0;
+
+        PRINT 'El accesorio electrónico se reactivó exitosamente.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo accesorio electrónico
+    INSERT INTO gestion_producto.AccesorioElectronico (nombre, precioDolar, activo)
+    VALUES (@nombre, @precioDolar, 1);
+
+    PRINT 'Nuevo accesorio electrónico insertado con éxito.';
 END
 GO
 
 -- ============================ SP INSERCION GESTION_VENTA ============================
 
-CREATE OR ALTER PROCEDURE gestion_venta.Insertar_Medio_De_Pago
-	@descripcion VARCHAR(30)
+CREATE OR ALTER PROCEDURE gestion_venta.Insertar_MedioDePago
+    @nombre VARCHAR(11),
+    @descripcion VARCHAR(30)
 AS
 BEGIN
-	IF EXISTS (	SELECT 1 FROM gestion_venta.MedioDePago
-				WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI and activo = 1)
-	BEGIN
-		PRINT 'El medio de pago ya existe.';
-		RETURN;
-	END
-	ELSE
-	BEGIN
-		IF EXISTS (	SELECT 1 FROM gestion_venta.MedioDePago
-					WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI and activo = 0 )
-		BEGIN
-			UPDATE gestion_venta.MedioDePago
-            SET activo = 1
-            WHERE descripcion = @descripcion COLLATE Latin1_General_CI_AI and activo = 0
-			
-			PRINT 'El medio de pago se dió de alta.';
-			RETURN;
-		END
+    -- Validar que los campos requeridos no sean nulos
+    IF @nombre IS NULL OR @descripcion IS NULL
+    BEGIN
+        PRINT 'Error: El nombre y la descripción no pueden ser nulos.';
+        RETURN;
+    END
 
-		INSERT INTO gestion_venta.MedioDePago(descripcion, activo)
-		VALUES(@descripcion, 1)
-		PRINT 'Medio de pago insertado con éxito.';
-	END
+    -- Verificar si el medio de pago ya existe y está activo
+    IF EXISTS (SELECT 1
+               FROM gestion_venta.MedioDePago
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 1)
+    BEGIN
+        PRINT 'Error: El medio de pago ya existe.';
+        RETURN;
+    END
+
+    -- Reactivar el medio de pago si ya existe pero está inactivo
+    IF EXISTS (SELECT 1
+               FROM gestion_venta.MedioDePago
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 0)
+    BEGIN
+        UPDATE gestion_venta.MedioDePago
+        SET activo = 1,
+            descripcion = @descripcion
+        WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+          AND activo = 0;
+
+        PRINT 'El medio de pago se reactivó exitosamente.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo medio de pago
+    INSERT INTO gestion_venta.MedioDePago (nombre, descripcion, activo)
+    VALUES (@nombre, @descripcion, 1);
+
+    PRINT 'Nuevo medio de pago insertado con éxito.';
+END
+GO
+
+CREATE OR ALTER PROCEDURE gestion_venta.Insertar_TipoFactura
+    @nombre CHAR(1)
+AS
+BEGIN
+    -- Validar que el campo nombre no sea nulo
+    IF @nombre IS NULL
+    BEGIN
+        PRINT 'Error: El nombre no puede ser nulo.';
+        RETURN;
+    END
+
+    -- Verificar si el tipo de factura ya existe y está activo
+    IF EXISTS (SELECT 1
+               FROM gestion_venta.TipoFactura
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 1)
+    BEGIN
+        PRINT 'Error: El tipo de factura ya existe.';
+        RETURN;
+    END
+
+    -- Reactivar el tipo de factura si ya existe pero está inactivo
+    IF EXISTS (SELECT 1
+               FROM gestion_venta.TipoFactura
+               WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+               AND activo = 0)
+    BEGIN
+        UPDATE gestion_venta.TipoFactura
+        SET activo = 1
+        WHERE nombre = @nombre COLLATE Latin1_General_CI_AI
+          AND activo = 0;
+
+        PRINT 'El tipo de factura se reactivó exitosamente.';
+        RETURN;
+    END
+
+    -- Insertar el nuevo tipo de factura
+    INSERT INTO gestion_venta.TipoFactura (nombre, activo)
+    VALUES (@nombre, 1);
+
+    PRINT 'Nuevo tipo de factura insertado con éxito.';
 END
 GO
 
