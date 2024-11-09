@@ -73,8 +73,8 @@ BEGIN
     SELECT 
         Ciudad, [Reemplazar por], direccion, Horario, Telefono
     FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
-        ''Excel 12.0;HDR=NO;Database=' + @RutaArchivo + ''', 
-        ''SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [' + @NombreHoja + '$]'')';
+        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''', 
+        ''SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [' + @nombreHoja + '$]'')';
 
     -- Ejecutar el SQL dinámico
     EXEC sp_executesql @importacion;
@@ -99,7 +99,7 @@ EXEC Importar_Sucursales
 GO
 -- ============================ SP IMPORTACION EMPLEADOS ============================
 	
-CREATE OR ALTER PROCEDURE Importar_Empleados
+CREATE OR ALTER PROCEDURE ImportarEmpleados
 AS
 BEGIN
     CREATE TABLE #TempEmpleados (
@@ -176,11 +176,108 @@ END;
 GO
 EXEC ImportarEmpleados
 GO
+-- La versión anterior Pilu la había hecho funcionar así que mi versión a probar la dejo aca
+
+CREATE OR ALTER PROCEDURE Importar_Empleados
+	@rutaArchivo NVARCHAR(100),
+	@nombreHoja	NVARCHAR(30)
+AS
+BEGIN
+    -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
+	CREATE TABLE #TempEmpleados (
+		[email personal]	VARCHAR(80),
+		[email empresa]		VARCHAR(80),
+		CUIL				CHAR(13),
+		Cargo				VARCHAR(20),
+		Sucursal			VARCHAR(20),
+		Turno				VARCHAR(20)
+	);
+/*
+	INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
+	SELECT 
+		 [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
+	'Excel 12.0;Database=C:\data\Informacion_complementaria.xlsx;HDR=NO',
+	'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
+*/
+	DECLARE @importacion NVARCHAR(MAX);
+
+    -- Construir la cadena SQL dinámica
+    SET @importacion = N'
+    INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
+    SELECT 
+        [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''', 
+        ''SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [' + @nombreHoja + '$]'')';
+
+    -- Ejecutar el SQL dinámico
+    EXEC sp_executesql @importacion;
+
+	SELECT * FROM #TempEmpleados;
+
+	INSERT INTO gestion_sucursal.Cargo(nombre)
+	SELECT DISTINCT Cargo
+	FROM #TempEmpleados
+	WHERE Cargo IS NOT NULL
+
+	INSERT INTO gestion_sucursal.Sucursal(nombre)
+	SELECT DISTINCT Sucursal
+	FROM #TempEmpleados
+	WHERE Sucursal IS NOT NULL
+
+	INSERT INTO gestion_sucursal.Turno(descripcion)
+	SELECT DISTINCT Turno
+	FROM #TempEmpleados
+	WHERE Turno IS NOT NULL
+
+	WITH CTE AS
+	(
+		SELECT 
+			te.[email personal],
+			te.[email empresa],
+			te.CUIL,
+			c.id AS id_cargo,  
+			s.id AS id_sucursal, 
+			t.id AS id_turno
+		FROM #TempEmpleados te
+		JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
+		JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
+		JOIN gestion_sucursal.Turno t ON t.descripcion = te.turno
+		
+		WHERE NOT EXISTS (
+            	SELECT 1 
+            	FROM gestion_sucursal.Empleado e 
+           		WHERE e.email_empresa = te.[email empresa] COLLATE Modern_Spanish_CI_AS
+       	 	)
+	)
+	INSERT INTO gestion_sucursal.Empleado (email, email_empresa, cuil, id_cargo, id_sucursal, id_turno)
+	SELECT 
+		CTE.[email personal],
+		CTE.[email empresa],
+		CTE.CUIL,
+		CTE.id_cargo,
+		CTE.id_sucursal,
+		CTE.id_turno
+	FROM CTE;
 	
+	-- Limpiar la tabla temporal
+    DROP TABLE #TempEmpleados;
+
+    -- Confirmar que todo se completo sin errores
+    PRINT 'Importación y registro de Empleados completados exitosamente.';
+END;
+GO
+EXEC Importar_Empleados
+	'C:\data\Informacion_complementaria.xlsx',
+	'Empleados'
+GO	
 -- ============================ SP IMPORTACION MEDIO DE PAGO ============================
 
-CREATE OR ALTER PROCEDURE Importar_MedioDePago
- --   @rutaArchivo VARCHAR(100)
+CREATE OR ALTER PROCEDURE Importar_MediosDePago
+	@rutaArchivo NVARCHAR(100),
+	@nombreHoja	NVARCHAR(30),
+	@rango VARCHAR(6)
 AS
 BEGIN
     -- Declaro la tabla temporal: No hay encabezados asi que los campos se llaman como quise
@@ -188,12 +285,26 @@ BEGIN
 		Nombre			VARCHAR(11),
 		Descripcion		VARCHAR(30)
 	);
-
+/*
 	INSERT INTO #TempMediosPago (Nombre, Descripcion)
-	SELECT *
+	SELECT F1 AS Nombre, F2 AS Descripcion -- cuando no hay encabezados lee las columnas como F1, F2 
 	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-    'Excel 12.0;HDR=NO;IMEX=1;Database=C:\Users\usuario\Documents\6) BD aplicadas\TP Reporte de Ventas\TP_integrador_Archivos\Informacion_complementaria.xlsx;',
-    'SELECT * FROM [medios de pago$B3:C1000]') -- Aquí especifico la fila de inicio (tercera fila) y el rango de columnas
+    'Excel 12.0;HDR=NO;Database=C:\data\Informacion_complementaria.xlsx',
+    'SELECT F1, F2 FROM [medios de pago$B3:C5]') -- Asi especifico el nombreHoja y el rango
+*/
+	DECLARE @importacion NVARCHAR(MAX);
+
+    -- Construir la cadena SQL dinámica
+    SET @importacion = N'
+    INSERT INTO #TempMediosPago (Nombre, Descripcion)
+    SELECT F1 AS Nombre, F2 AS Descripcion
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''',
+        ''SELECT F1, F2 FROM [' + @nombreHoja + '$' + @rango + ']'')
+    ';
+
+    -- Ejecutar el SQL dinámico
+    EXEC sp_executesql @importacion;
 
 	SELECT * FROM #TempMediosPago;
 
@@ -205,6 +316,10 @@ BEGIN
 	DROP TABLE #TempMediosPago
 	PRINT 'Importación y registro de Medios de Pago: Se completaron exitosamente.';
 END
+GO
+EXEC Importar_MediosDePago
+	'C:\data\Informacion_complementaria.xlsx',
+	'medios de pago', 'B3:C5'
 GO
 
 
