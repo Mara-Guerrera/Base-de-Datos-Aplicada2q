@@ -42,8 +42,10 @@ GO
 	
 -- ============================ SP IMPORTACION SUCURSAL ============================
 
+-- ARREGLADO PERO NO PROBADO AUN
 CREATE OR ALTER PROCEDURE Importar_Sucursales
---    @rutaArchivo VARCHAR(100)
+    @rutaArchivo NVARCHAR(100),
+	@nombreHoja	NVARCHAR(30)
 AS
 BEGIN
     -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
@@ -54,26 +56,46 @@ BEGIN
 		Horario				VARCHAR(50),
 		Telefono			CHAR(9),
     );
-	
+	/*
     INSERT INTO #TempSucursales (Ciudad, [Reemplazar por], direccion, Horario, Telefono)
 	SELECT 
 		Ciudad, [Reemplazar por], direccion, Horario, Telefono
 	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-	'Excel 12.0;HDR=YES;Database=C:\Users\usuario\Documents\6) BD aplicadas\TP Reporte de Ventas\TP_integrador_Archivos\Informacion_complementaria.xlsx;HDR=NO',
+	'Excel 12.0;HDR=NO;Database=C:\data\Informacion_complementaria.xlsx',
 	'SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [sucursal$]');
-			
+	SELECT * FROM #TempSucursales
+*/
+    DECLARE @importacion NVARCHAR(MAX);
+
+    -- Construir la cadena SQL dinámica
+    SET @importacion = N'
+    INSERT INTO #TempSucursales (Ciudad, [Reemplazar por], direccion, Horario, Telefono)
+    SELECT 
+        Ciudad, [Reemplazar por], direccion, Horario, Telefono
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+        ''Excel 12.0;HDR=NO;Database=' + @RutaArchivo + ''', 
+        ''SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [' + @NombreHoja + '$]'')';
+
+    -- Ejecutar el SQL dinámico
+    EXEC sp_executesql @importacion;
+
 	SELECT * FROM #TempSucursales
 
-	INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono)
-	SELECT ts.[Reemplazar por], ts.direccion, ts.Horario, ts.Telefono
-	FROM #TempSucursales ts
-	WHERE nombre = ts.Ciudad
+	UPDATE s
+	SET 
+		s.direccion = ts.direccion,
+		s.horario = ts.Horario,
+		s.telefono = ts.Telefono
+	FROM gestion_sucursal.Sucursal s JOIN #TempSucursales ts
+		ON s.nombre = ts.Ciudad;
 
-	DROP TABLE #TempMediosPago
+	DROP TABLE #TempSucursales
 	PRINT 'Importación y registro de Sucursales completados exitosamente.';
 END
 GO
 EXEC Importar_Sucursales
+	'C:\data\Informacion_complementaria.xlsx',
+	'sucursal'
 GO
 -- ============================ SP IMPORTACION EMPLEADOS ============================
 	
