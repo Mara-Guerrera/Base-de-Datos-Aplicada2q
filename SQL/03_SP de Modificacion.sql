@@ -33,36 +33,41 @@ GO
 
 CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Sucursal
     @id INT,
-    @nombre VARCHAR(30),
-    @id_ciudad INT
+    @nombre VARCHAR(30) = NULL,
+    @direccion VARCHAR(100) = NULL,
+    @horario VARCHAR(50) = NULL,
+    @telefono CHAR(9) = NULL,
+    @activo BIT = NULL
 AS
 BEGIN
-    -- Verificar si la ciudad existe
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id_ciudad)
+    -- Verificar si la sucursal existe y está activa
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
     BEGIN
-        PRINT 'Error: La ciudad especificada no existe.';
-        RETURN;
-    END
+        -- Validar el nombre
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 30
+        BEGIN
+            PRINT 'Error: El nombre supera el límite de 30 caracteres.';
+            RETURN;
+        END
 
-    -- Verificar si la sucursal existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id AND activo = 1)
-    BEGIN
-        -- Validar el nombre (mismo chequeo que la restricción)
-        IF LEN(@nombre) <= 30
+        -- Validar el teléfono
+        IF @telefono IS NOT NULL AND @telefono NOT LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
         BEGIN
-            -- Actualizar el registro
-            UPDATE gestion_sucursal.Sucursal
-            SET 
-                nombre = CASE WHEN @nombre IS NOT NULL THEN @nombre ELSE nombre END,
-                id_ciudad = CASE WHEN @id_ciudad IS NOT NULL THEN @id_ciudad ELSE id_ciudad END
-            WHERE id = @id;
-            
-            PRINT 'Registro de Sucursal actualizado exitosamente.';
+            PRINT 'Error: El teléfono debe tener el formato ####-####.';
+            RETURN;
         END
-        ELSE
-        BEGIN
-            PRINT 'Error en la modificacion de la sucursal';
-        END
+
+        -- Actualizar el registro
+        UPDATE gestion_sucursal.Sucursal
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            direccion = COALESCE(@direccion, direccion),
+            horario = COALESCE(@horario, horario),
+            telefono = COALESCE(@telefono, telefono),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+        
+        PRINT 'Registro de Sucursal actualizado exitosamente.';
     END
     ELSE
     BEGIN
@@ -70,7 +75,71 @@ BEGIN
     END
 END;
 GO
--- FALTARIA MODIFICAR CARGO Y TURNO
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Turno
+    @id INT,
+    @descripcion VARCHAR(16) = NULL,
+    @activo BIT = NULL
+AS
+BEGIN
+    -- Verificar si el turno existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
+    BEGIN
+        -- Validar la descripción
+        IF @descripcion IS NOT NULL AND LEN(@descripcion) > 16
+        BEGIN
+            PRINT 'Error: La descripción supera el límite de 16 caracteres.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_sucursal.Turno
+        SET 
+            descripcion = COALESCE(@descripcion, descripcion),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Turno actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Error: No se encontró un Turno con el ID especificado.';
+    END
+END;
+GO
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Cargo
+    @id INT,
+    @nombre VARCHAR(20) = NULL,
+    @activo BIT = NULL
+AS
+BEGIN
+    -- Verificar si el cargo existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
+    BEGIN
+        -- Validar el nombre
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 20
+        BEGIN
+            PRINT 'Error: El nombre del cargo supera el límite de 20 caracteres.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_sucursal.Cargo
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Cargo actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Error: No se encontró un Cargo con el ID especificado.';
+    END
+END;
+GO
+
 
 CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Empleado
     @id				INT NOT NULL,
@@ -177,98 +246,52 @@ CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Cliente
     @id INT,
     @nombre VARCHAR(50) = NULL,
     @apellido VARCHAR(50) = NULL,
-    @tipo INT = NULL,
+    @id_tipo INT = NULL,
     @id_genero INT = NULL,
-    @id_ciudad INT = NULL
+    @activo BIT = NULL
 AS
 BEGIN
-	IF  @nombre IS NULL AND @apellido IS NULL AND @tipo IS NULL AND @id_genero IS NULL AND @id_ciudad IS NULL
-	BEGIN
-		PRINT 'Error: No ingresó los datos que se quieren modificar.';
-		RETURN;
-	END
-
     -- Verificar si el cliente existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id and activo = 1)
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id)
     BEGIN
-
-        -- Actualizar tipo (id_tipoCliente) si se proporciona y es válido
-        IF @tipo IS NOT NULL
+        -- Validar el nombre y apellido
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 50
         BEGIN
-            IF EXISTS (
-                SELECT 1 
-                FROM gestion_sucursal.TipoCliente 
-                WHERE id = @tipo and activo = 1
-            )
-            BEGIN
-                UPDATE gestion_sucursal.Cliente
-                SET id_tipo = @tipo
-                WHERE id = @id;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: No existe un TipoCliente con el ID especificado.';
-				RETURN;
-            END
+            PRINT 'Error: El nombre supera el límite de 50 caracteres.';
+            RETURN;
         END
 
-        -- Actualizar id_genero si se proporciona y es válido
-        IF @id_genero IS NOT NULL
+        IF @apellido IS NOT NULL AND LEN(@apellido) > 50
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero and activo = 1)
-            BEGIN
-                UPDATE gestion_sucursal.Cliente
-                SET id_genero = @id_genero
-                WHERE id = @id;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: No existe un Genero con el ID especificado.';
-				RETURN;
-            END
+            PRINT 'Error: El apellido supera el límite de 50 caracteres.';
+            RETURN;
         END
 
-        -- Actualizar id_ciudad si se proporciona y es válido
-        IF @id_ciudad IS NOT NULL
+        -- Validar id_tipo (referencia a TipoCliente)
+        IF @id_tipo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_sucursal.Ciudad WHERE id = @id_ciudad)
-            BEGIN
-                UPDATE gestion_sucursal.Cliente
-                SET id_ciudad = @id_ciudad
-                WHERE id = @id;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: No existe una Ciudad con el ID especificado.';
-				RETURN;
-            END
+            PRINT 'Error: El Tipo de Cliente especificado no existe.';
+            RETURN;
         END
 
-		-- Validar y actualizar nombre si se proporciona
-        IF @nombre IS NOT NULL
+        -- Validar id_genero (referencia a Genero)
+        IF @id_genero IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero)
         BEGIN
-            IF LEN(@nombre) <= 50
-            BEGIN
-                UPDATE gestion_sucursal.Cliente
-                SET nombre = @nombre
-                WHERE id = @id;
-            END
+            PRINT 'Error: El Género especificado no existe.';
+            RETURN;
         END
 
-        -- Validar y actualizar apellido si se proporciona
-        IF @apellido IS NOT NULL
-        BEGIN
-            IF LEN(@apellido) <= 50
-            BEGIN
-                UPDATE gestion_sucursal.Cliente
-                SET apellido = @apellido
-                WHERE id = @id;
-            END
-            
-        END
+        -- Actualizar el registro
+        UPDATE gestion_sucursal.Cliente
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            apellido = COALESCE(@apellido, apellido),
+            id_tipo = COALESCE(@id_tipo, id_tipo),
+            id_genero = COALESCE(@id_genero, id_genero),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
 
-        -- Mensaje de confirmación si hubo al menos un cambio
-        PRINT 'Actualización de Cliente completada.';
+        PRINT 'Registro de Cliente actualizado exitosamente.';
     END
     ELSE
     BEGIN
@@ -276,6 +299,39 @@ BEGIN
     END
 END;
 GO
+
+CREATE OR ALTER PROCEDURE gestion_producto.Modificar_Proveedor
+    @id INT,
+    @nombre VARCHAR(40) = NULL,
+    @activo BIT = NULL
+AS
+BEGIN
+    -- Verificar si el proveedor existe
+    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
+    BEGIN
+        -- Validar el nombre
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 40
+        BEGIN
+            PRINT 'Error: El nombre del proveedor supera el límite de 40 caracteres.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_producto.Proveedor
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Proveedor actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Error: No se encontró un Proveedor con el ID especificado.';
+    END
+END;
+GO
+
 -- ============================ SP MODIFICACION GESTION_PRODUCTO ============================
 
 CREATE OR ALTER PROCEDURE gestion_producto.Modificar_TipoProducto
@@ -311,39 +367,167 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE gestion_producto.Modificar_Categoria
+    @id INT,
+    @nombre VARCHAR(50) = NULL,
+    @id_tipoProducto INT = NULL,
+    @activo BIT = NULL
+AS
+BEGIN
+    -- Verificar si la categoría existe
+    IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id)
+    BEGIN
+        -- Validar el nombre
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 50
+        BEGIN
+            PRINT 'Error: El nombre de la categoría supera el límite de 50 caracteres.';
+            RETURN;
+        END
+
+        -- Validar id_tipoProducto (referencia a TipoProducto)
+        IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
+        BEGIN
+            PRINT 'Error: El Tipo de Producto especificado no existe.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_producto.Categoria
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            id_tipoProducto = COALESCE(@id_tipoProducto, id_tipoProducto),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Categoría actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Error: No se encontró una Categoría con el ID especificado.';
+    END
+END;
+GO
+
 CREATE OR ALTER PROCEDURE gestion_producto.Modificar_Producto
     @id INT,
     @descripcion VARCHAR(50) = NULL,
     @precio DECIMAL(7,2) = NULL,
-    @id_tipoProducto INT = NULL, --FK
-	@precio_ref DECIMAL(7,2) = NULL,
-	@unidad_ref CHAR(3) = NULL,
-	@cant_por_unidad VARCHAR(25) = NULL
+    @id_categoria INT = NULL,
+    @precio_ref DECIMAL(7,2) = NULL,
+    @unidad_ref CHAR(3) = NULL,
+    @cant_por_unidad VARCHAR(25) = NULL,
+    @id_proveedor INT = NULL,
+    @activo BIT = NULL
 AS
 BEGIN
-	IF NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
+    -- Verificar si el producto existe
+    IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
     BEGIN
-        PRINT 'Error: El Producto no existe.';
-        RETURN;
+        -- Validar la descripción
+        IF @descripcion IS NOT NULL AND LEN(@descripcion) > 50
+        BEGIN
+            PRINT 'Error: La descripción supera el límite de 50 caracteres.';
+            RETURN;
+        END
+
+        -- Validar el precio
+        IF @precio IS NOT NULL AND @precio <= 0
+        BEGIN
+            PRINT 'Error: El precio debe ser mayor a 0.';
+            RETURN;
+        END
+
+        -- Validar id_categoria (referencia a Categoria)
+        IF @id_categoria IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria)
+        BEGIN
+            PRINT 'Error: La Categoría especificada no existe.';
+            RETURN;
+        END
+
+        -- Validar id_proveedor (referencia a Proveedor)
+        IF @id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor)
+        BEGIN
+            PRINT 'Error: El Proveedor especificado no existe.';
+            RETURN;
+        END
+
+        -- Validar la longitud de unidad_ref
+        IF @unidad_ref IS NOT NULL AND LEN(@unidad_ref) <> 3
+        BEGIN
+            PRINT 'Error: La unidad de referencia debe tener exactamente 3 caracteres.';
+            RETURN;
+        END
+
+        -- Validar la longitud de cant_por_unidad
+        IF @cant_por_unidad IS NOT NULL AND LEN(@cant_por_unidad) > 25
+        BEGIN
+            PRINT 'Error: La cantidad por unidad supera el límite de 25 caracteres.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_producto.Producto
+        SET 
+            descripcion = COALESCE(@descripcion, descripcion),
+            precio = COALESCE(@precio, precio),
+            id_categoria = COALESCE(@id_categoria, id_categoria),
+            precio_ref = COALESCE(@precio_ref, precio_ref),
+            unidad_ref = COALESCE(@unidad_ref, unidad_ref),
+            cant_por_unidad = COALESCE(@cant_por_unidad, cant_por_unidad),
+            id_proveedor = COALESCE(@id_proveedor, id_proveedor),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Producto actualizado exitosamente.';
     END
-	IF @id_tipoProducto IS NOT NULL
-		AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto AND activo = 1)
+    ELSE
     BEGIN
-        PRINT 'Error: El tipo de producto especificado no existe.';
-        RETURN;
+        PRINT 'Error: No se encontró un Producto con el ID especificado.';
     END
-		UPDATE a
-		SET descripcion = ISNULL(@descripcion, descripcion),
-		precio = ISNULL(@precio, precio),
-		id_tipoProducto = ISNULL(@id_tipoProducto, id_tipoProducto),
-		precio_ref = ISNULL(@precio_ref, precio_ref),
-		unidad_ref = ISNULL(@unidad_ref, unidad_ref),
-		cant_x_unidad = ISNULL(@cant_por_unidad, cant_por_unidad)
-		FROM gestion_producto.Producto a
-		WHERE id = @id
-	PRINT 'Producto modificado con éxito.';
 END;
 GO
+
+CREATE OR ALTER PROCEDURE gestion_producto.Modificar_AccesorioElectronico
+    @id INT,
+    @nombre VARCHAR(30) = NULL,
+    @precioDolar DECIMAL(6,2) = NULL,
+    @activo BIT = NULL
+AS
+BEGIN
+    -- Verificar si el accesorio existe
+    IF EXISTS (SELECT 1 FROM gestion_producto.AccesorioElectronico WHERE id = @id)
+    BEGIN
+        -- Validar el nombre
+        IF @nombre IS NOT NULL AND LEN(@nombre) > 30
+        BEGIN
+            PRINT 'Error: El nombre del accesorio supera el límite de 30 caracteres.';
+            RETURN;
+        END
+
+        -- Validar el precio en dólares
+        IF @precioDolar IS NOT NULL AND @precioDolar <= 0
+        BEGIN
+            PRINT 'Error: El precio en dólares debe ser mayor a 0.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_producto.AccesorioElectronico
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            precioDolar = COALESCE(@precioDolar, precioDolar),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
+
+        PRINT 'Registro de Accesorio Electrónico actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        PRINT 'Error: No se encontró un Accesorio Electrónico con el ID especificado.';
+    END
+END;
+GO
+
 -- ============================ SP MODIFICACION GESTION_VENTA ============================
 
 CREATE OR ALTER PROCEDURE gestion_venta.Modificar_MedioDePago
@@ -417,108 +601,69 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE gestion_venta.Modificar_Factura
-    @id_factura CHAR(11),
-    @id_tipofactura INT = NULL,
+    @id CHAR(11),
+    @id_tipoFactura INT = NULL,
     @id_cliente INT = NULL,
-    @total DECIMAL(8,2) = NULL,
     @fecha DATE = NULL,
     @hora TIME = NULL,
     @id_medioDePago INT = NULL,
     @id_empleado INT = NULL,
-    @id_sucursal INT = NULL
+    @id_sucursal INT = NULL,
+    @activo BIT = NULL
 AS
 BEGIN
     -- Verificar si la factura existe
-    IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura and activo = 1)
+    IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id)
     BEGIN
-        -- Validación y actualización de cada campo
-        IF @id_tipofactura IS NOT NULL
+        -- Validar id_tipoFactura
+        IF @id_tipoFactura IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipoFactura)
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipofactura and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.Factura
-				SET id_tipofactura = @id_tipofactura
-				WHERE id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: TipoFactura no existe.';
-            END
+            PRINT 'Error: El Tipo de Factura especificado no existe.';
+            RETURN;
         END
 
-        IF @id_cliente IS NOT NULL
+        -- Validar id_cliente
+        IF @id_cliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente)
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.Factura
-				SET id_cliente = @id_cliente
-				WHERE id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Cliente no existe.';
-            END
+            PRINT 'Error: El Cliente especificado no existe.';
+            RETURN;
         END
 
-
-        IF @fecha IS NOT NULL
+        -- Validar id_medioDePago
+        IF @id_medioDePago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago)
         BEGIN
-            UPDATE gestion_venta.Factura
-			SET fecha = @fecha
-			WHERE id_factura = @id_factura;
+            PRINT 'Error: El Medio de Pago especificado no existe.';
+            RETURN;
         END
 
-        IF @hora IS NOT NULL
+        -- Validar id_empleado
+        IF @id_empleado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado)
         BEGIN
-            UPDATE gestion_venta.Factura
-			SET hora = @hora
-			WHERE id_factura = @id_factura;
+            PRINT 'Error: El Empleado especificado no existe.';
+            RETURN;
         END
 
-        IF @id_medioDePago IS NOT NULL
+        -- Validar id_sucursal
+        IF @id_sucursal IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal)
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.Factura
-				SET id_medioDePago = @id_medioDePago
-				WHERE id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: MedioDePago no existe.';
-            END
+            PRINT 'Error: La Sucursal especificada no existe.';
+            RETURN;
         END
 
-        IF @id_empleado IS NOT NULL
-        BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.Factura
-				SET id_empleado = @id_empleado
-				WHERE id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Empleado no existe.';
-            END
-        END
+        -- Actualizar el registro
+        UPDATE gestion_venta.Factura
+        SET 
+            id_tipoFactura = COALESCE(@id_tipoFactura, id_tipoFactura),
+            id_cliente = COALESCE(@id_cliente, id_cliente),
+            fecha = COALESCE(@fecha, fecha),
+            hora = COALESCE(@hora, hora),
+            id_medioDePago = COALESCE(@id_medioDePago, id_medioDePago),
+            id_empleado = COALESCE(@id_empleado, id_empleado),
+            id_sucursal = COALESCE(@id_sucursal, id_sucursal),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id;
 
-        IF @id_sucursal IS NOT NULL
-        BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.Factura
-				SET id_sucursal = @id_sucursal
-				WHERE id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Sucursal no existe.';
-            END
-        END
-
-        -- Mensaje de confirmación si se realizó al menos un cambio
-        PRINT 'Actualización de Factura completada.';
+        PRINT 'Registro de Factura actualizado exitosamente.';
     END
     ELSE
     BEGIN
@@ -528,81 +673,68 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE gestion_venta.Modificar_DetalleVenta
-    @id_detalle INT,
+    @id INT,
     @id_factura CHAR(11),
     @id_producto INT = NULL,
     @cantidad INT = NULL,
     @subtotal DECIMAL(8,2) = NULL,
-    @precio_unitario DECIMAL(7,2) = NULL
+    @precio_unitario DECIMAL(7,2) = NULL,
+    @activo BIT = NULL
 AS
 BEGIN
-    -- Verificar si el detalle existe
-    IF EXISTS (	SELECT 1 FROM gestion_venta.DetalleVenta
-				WHERE id_detalle = @id_detalle AND id_factura = @id_factura and activo = 1)
+    -- Verificar si el detalle de venta existe
+    IF EXISTS (SELECT 1 FROM gestion_venta.DetalleVenta WHERE id = @id AND id_factura = @id_factura)
     BEGIN
-        -- Validación y actualización de cada campo
-        IF @id_producto IS NOT NULL
+        -- Validar id_producto
+        IF @id_producto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
         BEGIN
-            IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto and activo = 1)
-            BEGIN
-                UPDATE gestion_venta.DetalleVenta
-				SET id_producto = @id_producto
-				WHERE id_detalle = @id_detalle AND id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Producto no existe.';
-            END
+            PRINT 'Error: El Producto especificado no existe.';
+            RETURN;
         END
 
-        IF @cantidad IS NOT NULL
+        -- Validar id_factura
+        IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura)
         BEGIN
-            IF @cantidad > 0
-            BEGIN
-                UPDATE gestion_venta.DetalleVenta
-				SET cantidad = @cantidad
-				WHERE id_detalle = @id_detalle AND id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Cantidad debe ser mayor que 0.';
-            END
+            PRINT 'Error: La Factura especificada no existe.';
+            RETURN;
         END
 
-        IF @subtotal IS NOT NULL
+        -- Validar cantidad
+        IF @cantidad IS NOT NULL AND @cantidad <= 0
         BEGIN
-            IF @subtotal > 0
-            BEGIN
-                UPDATE gestion_venta.DetalleVenta
-				SET subtotal = @subtotal
-				WHERE id_detalle = @id_detalle AND id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Subtotal debe ser mayor que 0.';
-            END
+            PRINT 'Error: La cantidad debe ser mayor a 0.';
+            RETURN;
         END
 
-        IF @precio_unitario IS NOT NULL
+        -- Validar subtotal
+        IF @subtotal IS NOT NULL AND @subtotal <= 0
         BEGIN
-            IF @precio_unitario > 0
-            BEGIN
-                UPDATE gestion_venta.DetalleVenta
-				SET precio_unitario = @precio_unitario
-				WHERE id_detalle = @id_detalle AND id_factura = @id_factura;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: Precio unitario debe ser mayor que 0.';
-            END
+            PRINT 'Error: El subtotal debe ser mayor a 0.';
+            RETURN;
         END
 
-        -- Mensaje de confirmación si se realizó al menos un cambio
-        PRINT 'Actualización de DetalleVenta completada.';
+        -- Validar precio unitario
+        IF @precio_unitario IS NOT NULL AND @precio_unitario <= 0
+        BEGIN
+            PRINT 'Error: El precio unitario debe ser mayor a 0.';
+            RETURN;
+        END
+
+        -- Actualizar el registro
+        UPDATE gestion_venta.DetalleVenta
+        SET 
+            id_producto = COALESCE(@id_producto, id_producto),
+            cantidad = COALESCE(@cantidad, cantidad),
+            subtotal = COALESCE(@subtotal, subtotal),
+            precio_unitario = COALESCE(@precio_unitario, precio_unitario),
+            activo = COALESCE(@activo, activo)
+        WHERE id = @id AND id_factura = @id_factura;
+
+        PRINT 'Registro de Detalle de Venta actualizado exitosamente.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un DetalleVenta con el ID especificado y el ID de factura.';
+        PRINT 'Error: No se encontró un Detalle de Venta con el ID y Factura especificados.';
     END
 END;
 GO
