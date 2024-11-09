@@ -5,7 +5,8 @@ GO
 -- ============================ SP IMPORTACION PRODUCTOS ============================
 
 CREATE OR ALTER PROCEDURE Importar_Productos
---    @rutaArchivo VARCHAR(100)
+    @rutaArchivo NVARCHAR(100),
+	@nombreHoja	NVARCHAR(30)
 AS
 BEGIN
     -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
@@ -17,14 +18,28 @@ BEGIN
 		CantidadPorUnidad	VARCHAR(25),
 		PrecioUnidad		DECIMAL(7,2)
     );
-
+/*
     INSERT INTO #TempProductos (idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad)
 	SELECT 
 		idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad
 	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-	'Excel 12.0;HDR=YES;Database=C:\Users\usuario\Documents\6) BD aplicadas\TP Reporte de Ventas\TP_integrador_Archivos\Productos\Productos_importados.xlsx;HDR=YES',
+	'Excel 12.0;HDR=YES;Database=C:\data\Productos_importados.xlsx',
 	'SELECT idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad FROM [Listado de Productos$]');
-	
+*/	
+	DECLARE @importacion NVARCHAR(MAX);
+
+    -- Construir la cadena SQL dinámica
+    SET @importacion = N'
+    INSERT INTO #TempProductos (idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad)
+    SELECT 
+		idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad
+    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+        ''Excel 12.0;HDR=YES;Database=' + @rutaArchivo + ''', 
+        ''SELECT idProducto, NombreProducto, Proveedor, Categoria, CantidadPorUnidad, PrecioUnidad FROM [' + @nombreHoja + '$]'')';
+
+    -- Ejecutar el SQL dinámico
+    EXEC sp_executesql @importacion;
+
 	SELECT * FROM #TempProductos
 
 	-- Falta revisar cuando existe el Proveedor y la Categoria
@@ -99,9 +114,14 @@ BEGIN
     -- Limpiar la tabla temporal
     DROP TABLE #TempProductos;
 
-    -- Confirmar que todo se completó sin errores
+    -- Confirmar que todo se completo sin errores
     PRINT 'Importación y registro de Productos: Se completaron exitosamente.';
 END;
 GO
+EXEC Importar_Productos
+	'C:\data\Productos_importados.xlsx',
+	'Listado de Productos'
+GO
+
 
 
