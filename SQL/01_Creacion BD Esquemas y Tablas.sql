@@ -394,7 +394,8 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_venta.Factura
 	(
-		id					CHAR(11),
+		id					INT IDENTITY(1,1),
+		id_factura				CHAR(11),
 		id_tipoFactura		INT,
 		id_cliente			INT, -- tipo, genero
 		fecha				DATE,
@@ -405,14 +406,26 @@ BEGIN
 		--pagada				BIT DEFAULT 0,
 		activo				BIT DEFAULT 1,
 		--Actualizar la primary key a un identity 
-		CONSTRAINT Ck_FacturaID CHECK (id LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
-		CONSTRAINT PK_FacturaID PRIMARY KEY (id),
+		CONSTRAINT PK_ID PRIMARY KEY (id),
+		CONSTRAINT Ck_Factura CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'), 
 		CONSTRAINT FK_TipoFactura FOREIGN KEY (id_tipoFactura) REFERENCES gestion_venta.TipoFactura(id),
 		CONSTRAINT FK_ClienteID FOREIGN KEY(id_cliente) REFERENCES gestion_sucursal.Cliente(id),
 		CONSTRAINT FK_MedioDePagoID FOREIGN KEY(id_medioDePago) REFERENCES gestion_venta.MedioDePago(id),
 		CONSTRAINT FK_EmpleadoID FOREIGN KEY(id_empleado) REFERENCES gestion_sucursal.Empleado(id),
 		CONSTRAINT FK_SucursalID4 FOREIGN KEY(id_sucursal) REFERENCES gestion_sucursal.Sucursal(id)
 	)
+END
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE object_id = OBJECT_ID('gestion_venta.Factura')
+    AND name = 'IX_Factura_id_factura'
+)
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX IX_Factura_id_factura
+    ON gestion_venta.Factura(id_factura);
 END
 GO
 
@@ -436,7 +449,7 @@ BEGIN
 		CONSTRAINT Ck_DetalleVentaCantidad CHECK (cantidad > 0),
 		CONSTRAINT Ck_DetalleVentaSubtotal CHECK (subtotal > 0),
 		CONSTRAINT PK_DetalleVentaID PRIMARY KEY (id, id_factura),
-		CONSTRAINT FK_FacturaID FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
+		CONSTRAINT FK_FacturaID FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id_factura),
 		CONSTRAINT FK_ProductoID2 FOREIGN KEY(id_producto) REFERENCES gestion_producto.Producto(id)
 	)
 END
