@@ -358,8 +358,8 @@ BEGIN
     CREATE TABLE gestion_venta.MedioDePago
 	(
 		id				INT IDENTITY(1,1),
-		nombre			VARCHAR(11),
-		descripcion		VARCHAR(30), -- NUEVO
+		nombre			VARCHAR(20),
+		descripcion		VARCHAR(20), -- NUEVO
 		activo			BIT DEFAULT 1,
 		
 		CONSTRAINT PK_MedioDePagoID PRIMARY KEY (id)

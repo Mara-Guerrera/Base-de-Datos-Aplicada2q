@@ -38,7 +38,7 @@ BEGIN
 	--SELECT * FROM #TempImport;
 	WITH DuplicadosTipo AS	(
 		SELECT DISTINCT te.tipo_producto AS tipo_duplicado
-		FROM #TempImport te JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre
+		FROM #TempImport te JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre COLLATE MODERN_SPANISH_CI_AS
 	) 
 	--Verificación de Duplicados en Tipo de producto
 	INSERT INTO gestion_producto.TipoProducto (nombre)
@@ -56,8 +56,8 @@ BEGIN
 		c.id AS id_categoria,  
 	        tp.id AS id_tipoProducto_nuevo
 	FROM #TempImport te
-	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre 
-	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre --Busco el id tipo_producto del archivo.
+	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre  COLLATE MODERN_SPANISH_CI_AS
+	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre  COLLATE MODERN_SPANISH_CI_AS--Busco el id tipo_producto del archivo.
 	WHERE tp.id <> c.id_tipoProducto --Donde coincida la categoría pero no el id_tipo_producto.
 	)
 	UPDATE c
@@ -75,14 +75,14 @@ BEGIN
 	SELECT 
 	te.categoria
 	FROM #TempImport te 
-	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre
+	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre COLLATE MODERN_SPANISH_CI_AS
 	)
 	INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
 	SELECT 
 		te.categoria,
 		tp.id
 	FROM #TempImport te JOIN gestion_producto.TipoProducto tp
-	ON te.tipo_producto = tp.nombre 
+	ON te.tipo_producto = tp.nombre COLLATE MODERN_SPANISH_CI_AS
 	WHERE 
     	te.categoria IS NOT NULL AND NOT EXISTS (
           SELECT 1
@@ -140,9 +140,11 @@ SELECT * FROM gestion_producto.Categoria
 SELECT * FROM gestion_producto.TipoProducto 
 SELECT * FROM gestion_venta.MedioDePago 
 SELECT * FROM #TempImport
-DELETE FROM gestion_venta.MedioDePago
-DELETE FROM gestion_producto.Categoria
-DELETE FROM gestion_producto.TipoProducto 
+--DELETE FROM gestion_venta.MedioDePago
+--DELETE FROM gestion_producto.Categoria
+--DELETE FROM gestion_producto.TipoProducto 
 DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
+
+EXEC Importar_TipoProducto
