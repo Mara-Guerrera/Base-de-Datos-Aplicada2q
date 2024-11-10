@@ -253,7 +253,7 @@ BEGIN
     CREATE TABLE gestion_producto.Proveedor
 	(
 		id			INT IDENTITY(1,1),
-		nombre		VARCHAR(40),
+		nombre		VARCHAR(100),
 		activo		BIT DEFAULT 1,
 
 		CONSTRAINT PK_ProveedorID PRIMARY KEY (id)
