@@ -35,12 +35,12 @@ BEGIN
                 'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
                 'SELECT [Línea de producto], [Producto] FROM [Clasificacion Productos$B:C]');
 
-	SELECT * FROM #TempImport
-	--DROP TABLE #TempImport
+	--SELECT * FROM #TempImport;
 	WITH DuplicadosTipo AS	(
 		SELECT DISTINCT te.tipo_producto AS tipo_duplicado
 		FROM #TempImport te JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre
-	)
+	) 
+	--Verificación de Duplicados en Tipo de producto
 	INSERT INTO gestion_producto.TipoProducto (nombre)
 	SELECT DISTINCT tipo_producto
 	FROM #TempImport te
@@ -50,30 +50,33 @@ BEGIN
           FROM DuplicadosTipo d
           WHERE d.tipo_duplicado = te.tipo_producto
      );
-	WITH DuplicadosCategoria AS	(
-		SELECT --c.id AS id_tipoProducto,
-			c.nombre categoria,
-			tp.nombre tipo_producto,
-			te.tipo_producto,
-			te.categoria categoria_nueva 
-		FROM gestion_producto.Categoria c JOIN gestion_producto.TipoProducto tp ON c.id_tipoProducto = tp.id
-		JOIN #TempImport te ON te.categoria = c.nombre AND te.tipo_producto = tp.nombre
-		WHERE c.nombre = te.categoria
-	)
+	--Verificación de categorías ya existentes pero que cambiaron de tipo de producto en el archivo.
 	WITH Duplicados_Modificados AS (
-	    SELECT 
-    c.id AS id_categoria,  
-    tp.id AS id_tipoProducto_nuevo
-   FROM #TempImport te
-  JOIN gestion_producto.Categoria c ON te.categoria       = c.nombre 
-  JOIN gestion_producto.TipoProducto tp ON    te.tipo_producto = tp.nombre
-WHERE c.id_tipoProducto != tp.id; 
+	SELECT 
+		c.id AS id_categoria,  
+	        tp.id AS id_tipoProducto_nuevo
+	FROM #TempImport te
+	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre 
+	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre --Busco el id tipo_producto del archivo.
+	WHERE tp.id <> c.id_tipoProducto --Donde coincida la categoría pero no el id_tipo_producto.
 	)
 	UPDATE c
 	SET c.id_tipoProducto = dm.id_tipoProducto_nuevo
 	FROM gestion_producto.Categoria c
-	JOIN Duplicados_Modificados dm ON c.id = dm.id_categoria;
-
+	JOIN Duplicados_Modificados dm ON c.id = dm.id_categoria
+	--Verifico que el id_tipoProducto_nuevo exista.
+	WHERE EXISTS (
+		SELECT 1
+		FROM gestion_producto.TipoProducto tp
+		WHERE tp.id = dm.id_tipoProducto_nuevo
+	);
+	--Proceso para insertar las categorías obviando los duplicados.
+	WITH Duplicados_Categoria AS (
+	SELECT 
+	te.categoria
+	FROM #TempImport te 
+	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre
+	)
 	INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
 	SELECT 
 		te.categoria,
@@ -81,11 +84,15 @@ WHERE c.id_tipoProducto != tp.id;
 	FROM #TempImport te JOIN gestion_producto.TipoProducto tp
 	ON te.tipo_producto = tp.nombre 
 	WHERE 
-    te.categoria IS NOT NULL;
+    	te.categoria IS NOT NULL AND NOT EXISTS (
+          SELECT 1
+          FROM Duplicados_Categoria c
+          WHERE c.categoria = te.categoria
+     	);
+	DROP TABLE #TempImport
 END
 
--- Limpiar la tabla temporal
-DROP TABLE #TempImport;
+
 SELECT * INTO #TempMedios
 FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
                 'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
