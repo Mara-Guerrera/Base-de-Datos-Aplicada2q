@@ -124,9 +124,17 @@ SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacio
 EXEC Importar_Medios_de_Pago @RutaArchivo;*/
 
 CREATE OR ALTER PROCEDURE Importar_Productos_Importados
+@RutaArchivo NVARCHAR(255)
 AS
 BEGIN
-	CREATE TABLE #TempImportados
+	DECLARE @RutaArchivo NVARCHAR(255);
+	SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
+	DECLARE @Dinamico NVARCHAR(MAX);
+	IF OBJECT_ID('tempdb..##TempImportados') IS NOT NULL
+    BEGIN
+        DROP TABLE ##TempImportados;
+    END
+	CREATE TABLE ##TempImportados
 	(
 		id INT,         
 		NombreProducto VARCHAR(50),
@@ -135,24 +143,55 @@ BEGIN
 		CantidadPorUnidad VARCHAR(50),
 		PrecioUnidad VARCHAR(10),
 	);
-	INSERT INTO #TempImportados
+	SET @Dinamico = N'
+	INSERT INTO ##TempImportados
 	SELECT *
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0',
-	   'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx;HDR=YES',
-	   'SELECT * FROM [Listado de productos$]');
-	SELECT * FROM #TempImportados
-	INSERT INTO gestion_producto.TipoProducto(nombre)
-	SELECT DISTINCT Categoria
-	FROM #TempImportados ti
-	WHERE Categoria IS NOT NULL
-	AND NOT EXISTS (
-        SELECT *
-		FROM gestion_producto.TipoProducto d
-		WHERE d.nombre = ti.Categoria  
-     );
+	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
+					''Excel 12.0;Database=' + @RutaArchivo + N';HDR=YES'',
+					''SELECT * FROM [Listado de productos$]'');';
 
-	DROP TABLE #TempImportados
+
+	EXEC sp_executesql @Dinamico;
+	SELECT * FROM ##TempImportados
+	--Inserción de categorías que no estén cargadas previamente en la base de datos--
+	INSERT INTO gestion_producto.Categoria(nombre)
+	SELECT DISTINCT ti.Categoria
+	FROM ##TempImportados ti
+	WHERE ti.Categoria IS NOT NULL
+	AND NOT EXISTS (
+		SELECT 1
+		FROM gestion_producto.Categoria c
+		WHERE ti.Categoria LIKE '%' + c.nombre + '%'
+	);
+	INSERT INTO gestion_producto.Proveedor(nombre)
+	SELECT DISTINCT ti.Proveedor
+	FROM ##TempImportados ti
+	WHERE ti.Proveedor IS NOT NULL
+	AND NOT EXISTS (
+		SELECT 1
+		FROM gestion_producto.Proveedor p
+		WHERE ti.Proveedor = p.nombre
+	);
+
+	--Inserción de productos--
+	INSERT INTO gestion_producto.Producto(descripcion, precio, cant_por_unidad, id_categoria,id_proveedor)
+	SELECT ti.NombreProducto, ti.PrecioUnidad, ti.CantidadPorUnidad, c.id,pv.id
+	FROM ##TempImportados ti
+	JOIN gestion_producto.Categoria c 
+	ON ti.Categoria LIKE '%' + c.nombre + '%' 
+	JOIN gestion_producto.Proveedor pv ON pv.nombre = ti.Proveedor
+	WHERE NOT EXISTS (
+		SELECT 1 
+		FROM gestion_producto.Producto p 
+		WHERE p.descripcion = ti.NombreProducto
+	);
+	
+	DROP TABLE ##TempImportados
+
 END
+--DECLARE @RutaArchivo NVARCHAR(255);
+--SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
+--EXEC Importar_Productos_Importados @RutaArchivo
 
 /*CREATE TABLE #TempCatalogo
 (
