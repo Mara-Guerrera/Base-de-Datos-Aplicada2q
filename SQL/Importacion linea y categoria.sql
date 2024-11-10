@@ -242,7 +242,7 @@ BEGIN
 			te.reference_price,
 			te.reference_unit
 		FROM #TempCatalogo te
-		INNER JOIN gestion_producto.Categoria c ON c.nombre = te.category 
+		INNER JOIN gestion_producto.Categoria c ON c.nombre = te.category COLLATE MODERN_SPANISH_CI_AS
 	)
 	INSERT INTO gestion_producto.Producto(descripcion, precio, id_categoria, precio_ref, unidad_ref)
 	SELECT 
@@ -255,7 +255,7 @@ BEGIN
 	WHERE NOT EXISTS (
 		SELECT 1 
 		FROM gestion_producto.Producto p 
-		WHERE p.descripcion = c.name
+		WHERE p.descripcion = c.name COLLATE MODERN_SPANISH_CI_AS
 	);
 	DROP TABLE #TempCatalogo;
 END
@@ -312,3 +312,6 @@ DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
 
 EXEC Importar_TipoProducto
+
+
+SELECT * FROM gestion_producto.Producto 
