@@ -311,4 +311,4 @@ DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
 
-EXEC Importar_TipoProducto*/
+EXEC Importar_TipoProducto
