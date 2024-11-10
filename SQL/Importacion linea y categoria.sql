@@ -217,11 +217,11 @@ WITH
 SELECT * 
 FROM #TempCatalogo
 
-/*WITH CTE AS (
+WITH CTE AS (
 	SELECT *
 	FROM #TempCatalogo te
 	INNER JOIN gestion_producto.TipoProducto tp ON tp.nombre 
-)*/
+)
 
 DROP TABLE #TempCatalogo
 --Consultas y borrados--
