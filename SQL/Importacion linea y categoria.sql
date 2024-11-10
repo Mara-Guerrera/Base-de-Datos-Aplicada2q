@@ -93,19 +93,68 @@ BEGIN
 END
 
 
-SELECT * INTO #TempMedios
-FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-                'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
-                'SELECT [Medio de pago] FROM [medios de pago$]');
+CREATE OR ALTER PROCEDURE Importar_Medios_de_Pago
+    @RutaArchivo NVARCHAR(255)
+AS
+BEGIN
+	
+    DECLARE @Dinamico NVARCHAR(MAX);
+	IF OBJECT_ID('tempdb..##TempMedios') IS NOT NULL
+    BEGIN
+        DROP TABLE ##TempMedios;
+    END
 
+    SET @Dinamico = N'SELECT F1 AS Nombre, F2 AS Descripcion
+                 INTO ##TempMedios
+                 FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+                                 ''Excel 12.0;Database=' + @RutaArchivo + ';HDR=YES'', 
+                                 ''SELECT F1, F2 FROM [medios de pago$B2:C100]'');';
+	print @Dinamico
+	
+    EXEC sp_executesql @Dinamico;
+	
+    INSERT INTO gestion_venta.MedioDePago (nombre, descripcion)
+    SELECT nombre, descripcion FROM ##TempMedios;
 
-INSERT INTO gestion_venta.MedioDePago(descripcion)
-SELECT [Medio de pago]
-FROM #TempMedios
-DROP TABLE #TempMedios;
+    DROP TABLE ##TempMedios;
+END;
 
+/*DECLARE @RutaArchivo NVARCHAR(255);
+SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+EXEC Importar_Medios_de_Pago @RutaArchivo;*/
 
-CREATE TABLE #TempCatalogo
+CREATE OR ALTER PROCEDURE Importar_Productos_Importados
+AS
+BEGIN
+	CREATE TABLE #TempImportados
+	(
+		id INT,         
+		NombreProducto VARCHAR(50),
+		Proveedor VARCHAR(100),
+		Categoria VARCHAR(50),
+		CantidadPorUnidad VARCHAR(50),
+		PrecioUnidad VARCHAR(10),
+	);
+	INSERT INTO #TempImportados
+	SELECT *
+	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0',
+	   'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx;HDR=YES',
+	   'SELECT * FROM [Listado de productos$]');
+	SELECT * FROM #TempImportados
+	INSERT INTO gestion_producto.TipoProducto(nombre)
+	SELECT DISTINCT Categoria
+	FROM #TempImportados ti
+	WHERE Categoria IS NOT NULL
+	AND NOT EXISTS (
+        SELECT *
+		FROM gestion_producto.TipoProducto d
+		WHERE d.nombre = ti.Categoria  
+     );
+
+	DROP TABLE #TempImportados
+END
+
+/*CREATE TABLE #TempCatalogo
 (
     id INT,         
     category VARCHAR(50),
@@ -147,4 +196,4 @@ DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
 
-EXEC Importar_TipoProducto
+EXEC Importar_TipoProducto*/
