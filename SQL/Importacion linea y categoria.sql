@@ -127,8 +127,6 @@ CREATE OR ALTER PROCEDURE Importar_Productos_Importados
 @RutaArchivo NVARCHAR(255)
 AS
 BEGIN
-	DECLARE @RutaArchivo NVARCHAR(255);
-	SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
 	DECLARE @Dinamico NVARCHAR(MAX);
 	IF OBJECT_ID('tempdb..##TempImportados') IS NOT NULL
     BEGIN
@@ -150,7 +148,6 @@ BEGIN
 					''Excel 12.0;Database=' + @RutaArchivo + N';HDR=YES'',
 					''SELECT * FROM [Listado de productos$]'');';
 
-
 	EXEC sp_executesql @Dinamico;
 	SELECT * FROM ##TempImportados
 	--Inserción de categorías que no estén cargadas previamente en la base de datos--
@@ -163,6 +160,7 @@ BEGIN
 		FROM gestion_producto.Categoria c
 		WHERE ti.Categoria LIKE '%' + c.nombre + '%'
 	);
+
 	INSERT INTO gestion_producto.Proveedor(nombre)
 	SELECT DISTINCT ti.Proveedor
 	FROM ##TempImportados ti
@@ -174,11 +172,14 @@ BEGIN
 	);
 
 	--Inserción de productos--
-	INSERT INTO gestion_producto.Producto(descripcion, precio, cant_por_unidad, id_categoria,id_proveedor)
-	SELECT ti.NombreProducto, ti.PrecioUnidad, ti.CantidadPorUnidad, c.id,pv.id
+	INSERT INTO gestion_producto.Producto(descripcion, precio, cant_por_unidad, id_categoria, id_proveedor)
+	SELECT ti.NombreProducto, ti.PrecioUnidad, ti.CantidadPorUnidad, 
+		   (SELECT TOP 1 c.id 
+			FROM gestion_producto.Categoria c
+			WHERE ti.Categoria LIKE '%' + c.nombre + '%'
+			ORDER BY c.id) AS id_categoria,
+		   pv.id
 	FROM ##TempImportados ti
-	JOIN gestion_producto.Categoria c 
-	ON ti.Categoria LIKE '%' + c.nombre + '%' 
 	JOIN gestion_producto.Proveedor pv ON pv.nombre = ti.Proveedor
 	WHERE NOT EXISTS (
 		SELECT 1 
@@ -189,9 +190,9 @@ BEGIN
 	DROP TABLE ##TempImportados
 
 END
---DECLARE @RutaArchivo NVARCHAR(255);
---SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
---EXEC Importar_Productos_Importados @RutaArchivo
+--DECLARE @RutaArch NVARCHAR(255);
+--SET @RutaArch = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
+--EXEC Importar_Productos_Importados @RutaArch
 
 /*CREATE TABLE #TempCatalogo
 (
