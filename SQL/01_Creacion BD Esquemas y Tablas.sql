@@ -76,23 +76,6 @@ BEGIN
 END
 GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ==================
-/*
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Ciudad'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
-)
-BEGIN
-    CREATE TABLE gestion_sucursal.Ciudad
-	(
-		id			INT IDENTITY(1,1),
-		nombre			VARCHAR(50),
-	
-		CONSTRAINT PK_CiudadID PRIMARY KEY (id)
-	)
-END
-GO*/
 
 IF NOT EXISTS (
     SELECT 1
@@ -105,7 +88,6 @@ BEGIN
 	(
 		id					INT IDENTITY(1,1),
 		nombre				VARCHAR(30),
-		--id_ciudad			INT,
 		direccion			VARCHAR(150),
 		horario				VARCHAR(50),
 		telefono			CHAR(9),
@@ -113,7 +95,6 @@ BEGIN
 
 		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id),
-		--CONSTRAINT FK_CiudadID1 FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id)
 	)
 END
 GO
@@ -163,20 +144,27 @@ IF NOT EXISTS (
 BEGIN
     CREATE TABLE gestion_sucursal.Empleado
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
+		legajo				INT NOT NULL,
+		nombre				VARCHAR(30),
+		apellido			VARCHAR(30),
+		dni					CHAR(8) NOT NULL,
+		direccion			VARCHAR(160),
 		cuil				CHAR(13),
-		email				VARCHAR(60),
-		email_empresa			VARCHAR(60),
+		email				VARCHAR(80),
+		email_empresa		VARCHAR(80),
 		id_cargo			INT,
 		id_sucursal			INT,
 		id_turno			INT,
 		activo				BIT DEFAULT 1,
 
+		CONSTRAINT Ck_EmpleadoDni CHECK (dni LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'),
 		CONSTRAINT Ck_EmpleadoCuil CHECK (cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
 		CONSTRAINT PK_EmpleadoID PRIMARY KEY (id),
 		CONSTRAINT FK_CargoID FOREIGN KEY (id_cargo) REFERENCES gestion_sucursal.Cargo(id),
 		CONSTRAINT FK_SucursalID1 FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
 		CONSTRAINT FK_TurnoID FOREIGN KEY (id_turno) REFERENCES gestion_sucursal.Turno(id)
+
 	)
 END
 GO
@@ -231,11 +219,9 @@ BEGIN
 		apellido			VARCHAR(50),
 		id_tipo				INT, -- Normal / Member
 		id_genero			INT, -- Male / Female
-		--id_ciudad			INT,
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_ClienteID PRIMARY KEY (id),
-		--CONSTRAINT FK_CiudadID2 FOREIGN KEY (id_ciudad) REFERENCES gestion_sucursal.Ciudad(id),
 		CONSTRAINT FK_TipoCliente FOREIGN KEY (id_tipo) REFERENCES gestion_sucursal.TipoCliente(id),
 		CONSTRAINT FK_Genero FOREIGN KEY (id_genero) REFERENCES gestion_sucursal.Genero(id)
 	)
@@ -312,7 +298,6 @@ BEGIN
 		descripcion			VARCHAR(100),
 		precio				DECIMAL(7,2),
 		id_categoria		INT,
-		--id_tipoProducto		INT,
 		precio_ref			DECIMAL(7,2),
 		unidad_ref			CHAR(3),
 		cant_por_unidad		VARCHAR(25),
@@ -322,30 +307,11 @@ BEGIN
 		CONSTRAINT Ck_ProductoPrecio CHECK (precio > 0),
 		CONSTRAINT PK_ProductoID PRIMARY KEY (id),
 		CONSTRAINT FK_CategoriaID FOREIGN KEY (id_categoria) REFERENCES gestion_producto.Categoria(id),
-		--CONSTRAINT FK_TipoProductoID FOREIGN KEY (id_tipoProducto) REFERENCES gestion_producto.TipoProducto(id),
 		CONSTRAINT FK_ProveedorID FOREIGN KEY (id_proveedor) REFERENCES gestion_producto.Proveedor(id)
 	)
 END
 GO
-
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'AccesorioElectronico'
-    AND schema_id = SCHEMA_ID('gestion_producto')
-)
-BEGIN
-    CREATE TABLE gestion_producto.AccesorioElectronico
-	(
-		id				INT IDENTITY(1,1),
-		nombre			VARCHAR(30),
-		precioDolar		DECIMAL(6,2),
-		activo			BIT DEFAULT 1,
-
-		CONSTRAINT PK_AccesorioElectronicoID PRIMARY KEY (id)
-	)
-END
-GO
+	
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_VENTA ==================
 
 IF NOT EXISTS (
@@ -403,7 +369,7 @@ BEGIN
 		id_medioDePago		INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
-		--pagada				BIT DEFAULT 0,
+		pagada				BIT DEFAULT 0, -- La necesitamos para la nota de credito
 		activo				BIT DEFAULT 1,
 		--Actualizar la primary key a un identity 
 		CONSTRAINT PK_ID PRIMARY KEY (id),
