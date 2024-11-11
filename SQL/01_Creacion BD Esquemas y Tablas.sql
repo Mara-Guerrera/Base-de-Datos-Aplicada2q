@@ -309,7 +309,7 @@ BEGIN
     CREATE TABLE gestion_producto.Producto
 	(
 		id					INT IDENTITY(1,1),
-		descripcion			VARCHAR(50),
+		descripcion			VARCHAR(100),
 		precio				DECIMAL(7,2),
 		id_categoria		INT,
 		--id_tipoProducto		INT,
