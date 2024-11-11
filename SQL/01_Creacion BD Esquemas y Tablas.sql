@@ -106,7 +106,7 @@ BEGIN
 		id					INT IDENTITY(1,1),
 		nombre				VARCHAR(30),
 		--id_ciudad			INT,
-		direccion			VARCHAR(100),
+		direccion			VARCHAR(150),
 		horario				VARCHAR(50),
 		telefono			CHAR(9),
 		activo				BIT DEFAULT 1,
