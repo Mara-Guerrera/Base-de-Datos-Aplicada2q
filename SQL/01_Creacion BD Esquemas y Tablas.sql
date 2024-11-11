@@ -148,7 +148,7 @@ BEGIN
 		legajo				INT NOT NULL,
 		nombre				VARCHAR(30),
 		apellido			VARCHAR(30),
-		dni					CHAR(8) NOT NULL,
+		dni					CHAR(8),
 		direccion			VARCHAR(160),
 		cuil				CHAR(13),
 		email				VARCHAR(80),
