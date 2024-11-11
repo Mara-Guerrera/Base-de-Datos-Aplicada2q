@@ -156,13 +156,17 @@ BEGIN
 	WITH CTE AS
 	(
 		SELECT 
-		Legajo, Nombre, Apellido, DNI, Direccion,
-		email_personal,
-		email_empresa,
-		CUIL,
-		tu.id id_turno,
-		c.id id_cargo,
-		s.id id_sucursal
+		Legajo AS empleadoLEG,
+		Nombre AS empleadoNOM,
+		Apellido AS empleadoAPE,
+		DNI AS empleadoDNI,
+		Direccion AS empleadoDIR,
+		email_personal AS empleadoEMAIL,
+		email_empresa AS empleadoEMP,
+		CUIL AS empleadoCUIL,
+		tu.id AS turnoID,
+		c.id AS cargoID,
+		s.id AS sucursalID
 		FROM #TempEmpleados te 
 		INNER JOIN gestion_sucursal.Turno tu ON tu.descripcion = te.turno
 		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
@@ -177,6 +181,46 @@ BEGIN
 	INSERT INTO gestion_sucursal.Empleado (legajo, nombre, apellido, dni, direccion, email, email_empresa, cuil, id_turno, id_cargo, id_sucursal)
 	SELECT *
 	FROM CTE;
+
+-- Para actualizar
+	WITH CTE2 AS
+	(
+		SELECT 
+		Legajo AS empleadoLEG,
+		Nombre AS empleadoNOM,
+		Apellido AS empleadoAPE,
+		DNI AS empleadoDNI,
+		Direccion AS empleadoDIR,
+		email_personal AS empleadoEMAIL,
+		email_empresa AS empleadoEMP,
+		CUIL AS empleadoCUIL,
+		tu.id AS turnoID,
+		c.id AS cargoID,
+		s.id AS sucursalID
+		FROM #TempEmpleados te 
+		INNER JOIN gestion_sucursal.Turno tu ON tu.descripcion = te.turno
+		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
+		INNER JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
+		
+		WHERE te.Legajo IS NOT NULL AND EXISTS (
+            	SELECT 1 
+            	FROM gestion_sucursal.Empleado e 
+				WHERE e.legajo = te.Legajo
+       	 	)
+	)
+	UPDATE gestion_sucursal.Empleado
+	SET 
+		nombre = ISNULL(CTE2.empleadoNOM, nombre),
+		apellido = ISNULL(CTE2.empleadoAPE, apellido),
+		dni = ISNULL(CTE2.empleadoDNI, dni),
+		direccion = ISNULL(CTE2.empleadoDIR, direccion),
+		cuil = ISNULL(CTE2.empleadoCUIL, cuil),
+		email = ISNULL(CTE2.empleadoEMAIL, email),
+		email_empresa = ISNULL(CTE2.empleadoEMP, email_empresa),
+		id_turno = ISNULL(CTE2.turnoID, id_turno),
+		id_cargo = ISNULL(CTE2.cargoID, id_cargo),
+		id_sucursal = ISNULL(CTE2.sucursalID, id_sucursal)
+	FROM CTE2;
 
     -- Limpiar la tabla temporal
     DROP TABLE #TempEmpleados;
