@@ -361,7 +361,7 @@ BEGIN
     CREATE TABLE gestion_venta.Factura
 	(
 		id					INT IDENTITY(1,1),
-		id_factura				CHAR(11),
+		id_factura				CHAR(11) UNIQUE,
 		id_tipoFactura		INT,
 		id_cliente			INT, -- tipo, genero
 		fecha				DATE,
