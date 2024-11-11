@@ -33,138 +33,137 @@ interpretarlo como JSON o CSV).
 -- ============================ STORED PROCEDURES IMPORTACION ============================
 
 -- Habilitar Ad Hoc Distributed Queries (si no está habilitado)
-sp_configure 'show advanced options', 1;
+/*sp_configure 'show advanced options', 1;
 RECONFIGURE;
 GO
 sp_configure 'Ad Hoc Distributed Queries', 1;
 RECONFIGURE;
+GO*/
+USE Com5600G05
 GO
-	
--- ============================ SP IMPORTACION SUCURSAL ============================
-
--- ARREGLADO PERO NO PROBADO AUN
+-- ============================ SP IMPORTACION SUCURSALES ============================
 CREATE OR ALTER PROCEDURE Importar_Sucursales
-    @rutaArchivo NVARCHAR(100),
-	@nombreHoja	NVARCHAR(30)
+@Ruta NVARCHAR(400)
 AS
 BEGIN
-    -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
-    CREATE TABLE #TempSucursales (
-        Ciudad				VARCHAR(30),
-		[Reemplazar por]	VARCHAR(60),
-        direccion			VARCHAR(100),
-		Horario				VARCHAR(50),
-		Telefono			CHAR(9),
-    );
-	/*
-    INSERT INTO #TempSucursales (Ciudad, [Reemplazar por], direccion, Horario, Telefono)
+
+	DECLARE @Dinamico NVARCHAR(MAX);
+	IF OBJECT_ID('tempdb..#TempSucursales') IS NOT NULL
+    BEGIN
+        DROP TABLE #TempSucursales;
+    END
+	CREATE TABLE #TempSucursales
+	(
+		Nombre VARCHAR(30),
+		Direccion VARCHAR(150),
+		Horario VARCHAR(50),
+		Telefono CHAR(9)
+	)
+	
+	SET @Dinamico = N'
+	INSERT INTO #TempSucursales (Nombre, Direccion, Horario, Telefono)
 	SELECT 
-		Ciudad, [Reemplazar por], direccion, Horario, Telefono
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-	'Excel 12.0;HDR=NO;Database=C:\data\Informacion_complementaria.xlsx',
-	'SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [sucursal$]');
-	SELECT * FROM #TempSucursales
-*/
-    DECLARE @importacion NVARCHAR(MAX);
+		 [Reemplazar por] as Nombre,
+		 [direccion] as Direccion,
+		 [Horario],
+		 [Telefono]
+	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+					''Excel 12.0;Database=' + @Ruta + N';HDR=YES'',
+					''SELECT [Reemplazar por],[direccion],[Horario],[Telefono] FROM [sucursal$]'');'
 
-    -- Construir la cadena SQL dinámica
-    SET @importacion = N'
-    INSERT INTO #TempSucursales (Ciudad, [Reemplazar por], direccion, Horario, Telefono)
-    SELECT 
-        Ciudad, [Reemplazar por], direccion, Horario, Telefono
-    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
-        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''', 
-        ''SELECT Ciudad, [Reemplazar por], direccion, Horario, Telefono FROM [' + @nombreHoja + '$]'')';
+	EXEC sp_executesql @Dinamico;
 
-    -- Ejecutar el SQL dinámico
-    EXEC sp_executesql @importacion;
-
-	SELECT * FROM #TempSucursales
-
-	UPDATE s
-	SET 
-		s.direccion = ts.direccion,
-		s.horario = ts.Horario,
-		s.telefono = ts.Telefono
-	FROM gestion_sucursal.Sucursal s JOIN #TempSucursales ts
-		ON s.nombre = ts.Ciudad;
+	INSERT INTO gestion_sucursal.Sucursal(nombre,direccion,horario,telefono)
+	SELECT *
+	FROM #TempSucursales te
+	WHERE NOT EXISTS (
+		SELECT 1
+		FROM gestion_sucursal.Sucursal s WHERE s.nombre = te.Nombre 
+	)
 
 	DROP TABLE #TempSucursales
-	PRINT 'Importación y registro de Sucursales completados exitosamente.';
 END
 GO
-EXEC Importar_Sucursales
-	'C:\data\Informacion_complementaria.xlsx',
-	'sucursal'
+DECLARE @RutaArch NVARCHAR(255);
+SET @RutaArch = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+EXEC Importar_Sucursales @RutaArch
 GO
 -- ============================ SP IMPORTACION EMPLEADOS ============================
-	
-CREATE OR ALTER PROCEDURE ImportarEmpleados
+CREATE OR ALTER PROCEDURE Importar_Empleados
+@Ruta NVARCHAR(400)
 AS
 BEGIN
+
+	DECLARE @Dinamico NVARCHAR(MAX);
+	IF OBJECT_ID('tempdb..#TempEmpleados') IS NOT NULL
+    BEGIN
+        DROP TABLE #TempEmpleados;
+    END
     CREATE TABLE #TempEmpleados (
-        [email personal]	VARCHAR(80),
-		[email empresa]		VARCHAR(80),
-        CUIL				CHAR(13),
+        email_personal	VARCHAR(80),
+		email_empresa		VARCHAR(80),
+        CUIL				CHAR(12),
 		Cargo				VARCHAR(20),
 		Sucursal			VARCHAR(20),
 		Turno				VARCHAR(20)
     );
-
-	INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
+	SET @Dinamico = N'
+	INSERT INTO #TempEmpleados (email_personal, email_empresa, CUIL, Cargo, Sucursal, Turno)
 	SELECT 
-		 [email personal],
-		 [email empresa],
+		 [email personal] email_personal,
+		 [email empresa] email_empresa,
 		 CUIL,
 		 Cargo,
 		 Sucursal,
 		 Turno
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-					'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx;HDR=YES',
-					'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
+	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+					''Excel 12.0;Database=' + @Ruta + N';HDR=YES'',
+					''SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]'');'
+	
+	EXEC sp_executesql @Dinamico;
 
 	INSERT INTO gestion_sucursal.Turno (descripcion)
 	SELECT DISTINCT Turno
-	FROM #TempEmpleados
-	WHERE Turno IS NOT NULL
+	FROM #TempEmpleados te
+	WHERE Turno IS NOT NULL 
+	AND NOT EXISTS (
+        SELECT 1 
+        FROM gestion_sucursal.Turno tu
+        WHERE tu.descripcion = te.Turno
+    );
 	
 	INSERT INTO gestion_sucursal.Cargo (nombre)
 	SELECT DISTINCT Cargo
-	FROM #TempEmpleados
+	FROM #TempEmpleados te
 	WHERE Cargo IS NOT NULL
+	AND NOT EXISTS (
+        SELECT 1 
+        FROM gestion_sucursal.Cargo c
+        WHERE c.nombre = te.Cargo
+    );
 
-	INSERT INTO gestion_sucursal.Sucursal (nombre)
-	SELECT DISTINCT Sucursal
-	FROM #TempEmpleados
-	WHERE Sucursal IS NOT NULL;
 	WITH CTE AS
 	(
 		SELECT 
-			te.[email personal],
-			te.[email empresa],
-			te.CUIL,
-			c.id AS id_cargo,  
-			s.id AS id_sucursal, 
-			t.id AS id_turno
+		email_personal,
+		email_empresa,
+		CUIL,
+		tu.id id_turno,
+		c.id id_cargo,
+		s.id id_sucursal
 		FROM #TempEmpleados te 
-		INNER JOIN gestion_sucursal.Turno t ON t.descripcion = te.turno
+		INNER JOIN gestion_sucursal.Turno tu ON tu.descripcion = te.turno
 		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
 		INNER JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
 		
-		WHERE NOT EXISTS (
+		WHERE te.email_empresa IS NOT NULL AND NOT EXISTS (
             	SELECT 1 
             	FROM gestion_sucursal.Empleado e 
-           	WHERE e.email_empresa = te.[email empresa] COLLATE Modern_Spanish_CI_AS
+				WHERE e.email_empresa = te.email_empresa
        	 	)
 	)
-	INSERT INTO gestion_sucursal.Empleado (email, email_empresa, cuil, id_cargo, id_sucursal, id_turno)
-	SELECT 
-		CTE.[email personal],
-		CTE.[email empresa],
-		CTE.CUIL,
-		CTE.id_cargo,
-		CTE.id_sucursal,
-		CTE.id_turno
+	INSERT INTO gestion_sucursal.Empleado (email, email_empresa, cuil, id_turno, id_cargo, id_sucursal)
+	SELECT *
 	FROM CTE;
 
     -- Limpiar la tabla temporal
@@ -174,248 +173,27 @@ BEGIN
     PRINT 'Importación y registro completados exitosamente.';
 END;
 GO
-EXEC ImportarEmpleados
+DECLARE @RutaArch NVARCHAR(255);
+SET @RutaArch = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
+EXEC Importar_Empleados @RutaArch
 GO
--- La versión anterior Pilu la había hecho funcionar así que mi versión a probar la dejo aca
-
-CREATE OR ALTER PROCEDURE Importar_Empleados
-	@rutaArchivo NVARCHAR(100),
-	@nombreHoja	NVARCHAR(30)
-AS
-BEGIN
-    -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
-	CREATE TABLE #TempEmpleados (
-		[email personal]	VARCHAR(80),
-		[email empresa]		VARCHAR(80),
-		CUIL				CHAR(13),
-		Cargo				VARCHAR(20),
-		Sucursal			VARCHAR(20),
-		Turno				VARCHAR(20)
-	);
-/*
-	INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
-	SELECT 
-		 [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-	'Excel 12.0;Database=C:\data\Informacion_complementaria.xlsx;HDR=NO',
-	'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
-*/
-	DECLARE @importacion NVARCHAR(MAX);
-
-    -- Construir la cadena SQL dinámica
-    SET @importacion = N'
-    INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
-    SELECT 
-        [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno
-    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
-        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''', 
-        ''SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [' + @nombreHoja + '$]'')';
-
-    -- Ejecutar el SQL dinámico
-    EXEC sp_executesql @importacion;
-
-	SELECT * FROM #TempEmpleados;
-
-	INSERT INTO gestion_sucursal.Cargo(nombre)
-	SELECT DISTINCT Cargo
-	FROM #TempEmpleados
-	WHERE Cargo IS NOT NULL
-
-	INSERT INTO gestion_sucursal.Sucursal(nombre)
-	SELECT DISTINCT Sucursal
-	FROM #TempEmpleados
-	WHERE Sucursal IS NOT NULL
-
-	INSERT INTO gestion_sucursal.Turno(descripcion)
-	SELECT DISTINCT Turno
-	FROM #TempEmpleados
-	WHERE Turno IS NOT NULL
-
-	WITH CTE AS
-	(
-		SELECT 
-			te.[email personal],
-			te.[email empresa],
-			te.CUIL,
-			c.id AS id_cargo,  
-			s.id AS id_sucursal, 
-			t.id AS id_turno
-		FROM #TempEmpleados te
-		JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
-		JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
-		JOIN gestion_sucursal.Turno t ON t.descripcion = te.turno
-		
-		WHERE NOT EXISTS (
-            	SELECT 1 
-            	FROM gestion_sucursal.Empleado e 
-           		WHERE e.email_empresa = te.[email empresa] COLLATE Modern_Spanish_CI_AS
-       	 	)
-	)
-	INSERT INTO gestion_sucursal.Empleado (email, email_empresa, cuil, id_cargo, id_sucursal, id_turno)
-	SELECT 
-		CTE.[email personal],
-		CTE.[email empresa],
-		CTE.CUIL,
-		CTE.id_cargo,
-		CTE.id_sucursal,
-		CTE.id_turno
-	FROM CTE;
-	
-	-- Limpiar la tabla temporal
-    DROP TABLE #TempEmpleados;
-
-    -- Confirmar que todo se completo sin errores
-    PRINT 'Importación y registro de Empleados completados exitosamente.';
-END;
-GO
-EXEC Importar_Empleados
-	'C:\data\Informacion_complementaria.xlsx',
-	'Empleados'
-GO	
--- ============================ SP IMPORTACION MEDIO DE PAGO ============================
-
-CREATE OR ALTER PROCEDURE Importar_MediosDePago
-	@rutaArchivo NVARCHAR(100),
-	@nombreHoja	NVARCHAR(30),
-	@rango VARCHAR(6)
-AS
-BEGIN
-    -- Declaro la tabla temporal: No hay encabezados asi que los campos se llaman como quise
-	CREATE TABLE #TempMediosPago(
-		Nombre			VARCHAR(11),
-		Descripcion		VARCHAR(30)
-	);
-/*
-	INSERT INTO #TempMediosPago (Nombre, Descripcion)
-	SELECT F1 AS Nombre, F2 AS Descripcion -- cuando no hay encabezados lee las columnas como F1, F2 
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-    'Excel 12.0;HDR=NO;Database=C:\data\Informacion_complementaria.xlsx',
-    'SELECT F1, F2 FROM [medios de pago$B3:C5]') -- Asi especifico el nombreHoja y el rango
-*/
-	DECLARE @importacion NVARCHAR(MAX);
-
-    -- Construir la cadena SQL dinámica
-    SET @importacion = N'
-    INSERT INTO #TempMediosPago (Nombre, Descripcion)
-    SELECT F1 AS Nombre, F2 AS Descripcion
-    FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'',
-        ''Excel 12.0;HDR=NO;Database=' + @rutaArchivo + ''',
-        ''SELECT F1, F2 FROM [' + @nombreHoja + '$' + @rango + ']'')
-    ';
-
-    -- Ejecutar el SQL dinámico
-    EXEC sp_executesql @importacion;
-
-	SELECT * FROM #TempMediosPago;
-
-	INSERT INTO gestion_venta.MedioDePago (nombre, descripcion)
-	SELECT Nombre, Descripcion
-	FROM #TempMediosPago
-	WHERE Nombre IS NOT NULL AND Descripcion IS NOT NULL
-
-	DROP TABLE #TempMediosPago
-	PRINT 'Importación y registro de Medios de Pago: Se completaron exitosamente.';
-END
-GO
-EXEC Importar_MediosDePago
-	'C:\data\Informacion_complementaria.xlsx',
-	'medios de pago', 'B3:C5'
-GO
-
 
 /*
--- ============================ SP IMPORTACION EMPLEADOS ============================
-
-CREATE OR ALTER PROCEDURE ImportarEmpleados
-    @rutaArchivo VARCHAR(100)
-AS
-BEGIN
-    -- Declaro la tabla temporal: Los campos deben coincidir con los de las columnas del Excel
-    CREATE TABLE #TempEmpleados (
-        [email personal]	VARCHAR(60),
-		[email empresa]		VARCHAR(60),
-        CUIL				CHAR(13),
-		Cargo				VARCHAR(20),
-		Sucursal			VARCHAR(20),
-		Turno				VARCHAR(20)
-    );
-
--- Uso OPENROWSET para importar datos del archivo Excel a la tabla temporal
--- LTRIM RTRIM borran los espacios al inicio y al final de la celda
--- NULLIF(NULLIF(columna, ''), ' ') asegura que los valores vacíos y los que contienen solo espacios se reemplacen por NULL
-    INSERT INTO #TempEmpleados ([email personal], [email empresa], CUIL, Cargo, Sucursal, Turno)
-	SELECT 
-		NULLIF(NULLIF(LTRIM(RTRIM([email personal])), ''), ' ') AS [email personal],
-		NULLIF(NULLIF(LTRIM(RTRIM([email empresa])), ''), ' ') AS [email empresa],
-		NULLIF(NULLIF(LTRIM(RTRIM(CUIL)), ''), ' ') AS CUIL,
-		NULLIF(NULLIF(LTRIM(RTRIM(Cargo)), ''), ' ') AS Cargo,
-		NULLIF(NULLIF(LTRIM(RTRIM(Sucursal)), ''), ' ') AS Sucursal,
-		NULLIF(NULLIF(LTRIM(RTRIM(Turno)), ''), ' ') AS Turno
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-                'Excel 12.0;HDR=YES;Database=' + @rutaArchivo + -- Uso el nombre correcto de la hoja
-                'SELECT [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]');
-				
-
-	-- Variable para manejar el índice del registro
-    DECLARE @ind INT = 1
-    DECLARE @cantRegistros INT
-
-    -- Obtengo la cantidad de registros de la tabla temporal
-    SELECT @cantRegistros = COUNT(*) FROM #TempEmpleados;
-
-	DECLARE @empleadoID INT
-	DECLARE @emailPersonal VARCHAR(60)
-	DECLARE @emailEmpresa VARCHAR(60)
-	DECLARE @empleadoCuil CHAR(13)
-	DECLARE @cargoID INT
-	DECLARE @sucursalID INT
-	DECLARE @turnoID INT
-    
-    WHILE @ind <= @cantRegistros -- Recorro cada registro
-	BEGIN
-			-- Asigno mis campos
-		SELECT @empleadoCuil = te.CUIL, @emailPersonal = te.[email personal], @emailEmpresa = te.[email empresa] 
-		FROM gestion_sucursal.Empleado e JOIN #TempEmpleados te ON te.[email empresa] = e.email_empresa
-
-		SELECT @cargoID = c.id
-		FROM gestion_sucursal.Cargo c JOIN #TempEmpleados te ON te.Cargo = c.nombre
-
-		SELECT @sucursalID = s.id
-		FROM gestion_sucursal.Sucursal s JOIN #TempEmpleados te ON te.Sucursal = s.nombre
-
-		SELECT @turnoID = s.id
-		FROM gestion_sucursal.Turno t JOIN #TempEmpleados te ON te.Turno = t.descripcion
-		
-		SELECT @empleadoID = c.id
-		FROM gestion_sucursal.Empleado e JOIN #TempEmpleados te ON te.[email empresa] = e.email_empresa
-
-		-- Si el empleado ya existe
-		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID)
-		BEGIN
-			UPDATE gestion_sucursal.Empleado
-			SET
-				cuil = ISNULL(@empleadoCuil, cuil),
-				email = ISNULL(@emailPersonal, email),
-				email_empresa = ISNULL(@emailEmpresa, email_empresa),
-				id_cargo = ISNULL(@cargoID, id_cargo),
-				id_sucursal = ISNULL(@sucursalID, id_sucursal),
-				id_turno = ISNULL(@turnoID, id_turno)
-			WHERE id = @empleadoID
-			--PRINT 'Empleado modificado'
-		END
-		ELSE
-		BEGIN
-			INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
-			VALUES (@empleadoCuil, @emailPersonal, @emailEmpresa, @cargoID, @sucursalID, @turnoID)
-			--PRINT 'Nuevo empleado insertado'
-		END
-	END
-	
-    -- Limpiar la tabla temporal
-    DROP TABLE #TempEmpleados;
-
-    -- Confirmar que todo se completó sin errores
-    PRINT 'Importación y registro completados exitosamente.';
-END;
-GO
+--Consultas--
+SELECT * FROM gestion_sucursal.Cargo
+SELECT * FROM gestion_sucursal.Sucursal
+SELECT * FROM gestion_sucursal.Empleado
+SELECT * FROM gestion_sucursal.Turno
+--Borrados--
+DELETE FROM gestion_sucursal.Sucursal
+DELETE FROM gestion_sucursal.Cargo
+DELETE FROM gestion_sucursal.Empleado
+DELETE FROM gestion_sucursal.Turno
+--Reinicio contador id incremental--
+DBCC CHECKIDENT ('gestion_sucursal.Cargo', RESEED, 0);
+DBCC CHECKIDENT ('gestion_sucursal.Turno', RESEED, 0);
+DBCC CHECKIDENT ('gestion_sucursal.Sucursal', RESEED, 0);
+DBCC CHECKIDENT ('gestion_sucursal.Empleado', RESEED, 0);
 */
+
+
