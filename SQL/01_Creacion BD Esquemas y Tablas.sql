@@ -94,7 +94,7 @@ BEGIN
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
-		CONSTRAINT PK_SucursalID PRIMARY KEY (id),
+		CONSTRAINT PK_SucursalID PRIMARY KEY (id)
 	)
 END
 GO
