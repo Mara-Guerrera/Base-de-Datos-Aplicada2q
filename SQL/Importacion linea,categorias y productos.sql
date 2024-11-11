@@ -187,21 +187,20 @@ BEGIN
 	SELECT 
 	ti.NombreProducto, 
 	CAST(ti.PrecioUnidad AS DECIMAL(7,2)) PrecioUnidad,
-	ti.CantidadPorUnidad, 
-	CAST(c.id AS INT) id_catalogo,
+	ti.CantidadPorUnidad,( 
+	SELECT TOP 1 c.id
+	FROM gestion_producto.Categoria c
+	WHERE ti.Categoria LIKE '%' + c.nombre + '%'
+	ORDER BY c.id) AS id_categoria,
 	CAST(pv.id AS INT) id_proveedor
 	FROM #TempImportados ti
-	JOIN gestion_producto.Categoria c 
-	ON ti.Categoria LIKE '%' + c.nombre + '%' 
 	JOIN gestion_producto.Proveedor pv ON pv.nombre = ti.Proveedor
 	WHERE NOT EXISTS (
 		SELECT 1 
 		FROM gestion_producto.Producto p 
 		WHERE p.descripcion = ti.NombreProducto
-	);
-	
+	)
 	DROP TABLE #TempImportados
-
 END
 GO
 DECLARE @RutaArchivo NVARCHAR(255);
@@ -306,10 +305,10 @@ EXEC Importar_Electronicos @RutaArchivo
 SELECT * FROM gestion_producto.Categoria
 SELECT * FROM gestion_producto.TipoProducto
 SELECT * FROM gestion_producto.Producto
-where descripcion = 'Macbook Pro Laptop'
 SELECT * FROM gestion_venta.MedioDePago
 SELECT * FROM #TempImport
 DELETE FROM gestion_producto.Producto
+DELETE FROM gestion_venta.DetalleVenta
 DELETE FROM gestion_producto.TipoProducto
 DELETE FROM gestion_producto.Categoria
 DELETE FROM gestion_venta.MedioDePago
@@ -317,3 +316,4 @@ DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.Producto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);*/
+
