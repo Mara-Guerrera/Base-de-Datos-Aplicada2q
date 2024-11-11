@@ -22,23 +22,30 @@ GO
 sp_configure 'Ad Hoc Distributed Queries', 1;
 RECONFIGURE;
 GO*/
+USE Com5600G05
+GO
 
 CREATE OR ALTER PROCEDURE Importar_TipoProducto
+@Ruta NVARCHAR(400)
 AS
 BEGIN
+
+	DECLARE @Dinamico NVARCHAR(MAX);
+	CREATE TABLE #TempImport
+	(
+		tipo_producto VARCHAR(40),
+		categoria VARCHAR(50)
+	)
+	SET @Dinamico = N'
+	INSERT INTO #TempImport (tipo_producto,categoria)
 	SELECT 
 		[Línea de producto] AS tipo_producto,
 		[Producto] AS categoria
-	INTO #TempImport
-	FROM OPENROWSET('Microsoft.ACE.OLEDB.12.0', 
-                'Excel 12.0;Database=C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx; HDR=YES', 
-                'SELECT [Línea de producto], [Producto] FROM [Clasificacion Productos$B:C]');
+	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
+					''Excel 12.0;Database=' + @Ruta + N';HDR=YES'',
+					''SELECT [Línea de producto],[Producto] FROM [Clasificacion Productos$B:C]'');'
+	EXEC sp_executesql @Dinamico;
 
-	--SELECT * FROM #TempImport;
-	WITH DuplicadosTipo AS	(
-		SELECT DISTINCT te.tipo_producto AS tipo_duplicado
-		FROM #TempImport te JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre COLLATE MODERN_SPANISH_CI_AS
-	) 
 	--Verificación de Duplicados en Tipo de producto
 	INSERT INTO gestion_producto.TipoProducto (nombre)
 	SELECT DISTINCT tipo_producto
@@ -46,17 +53,18 @@ BEGIN
 	WHERE tipo_producto IS NOT NULL
 	AND NOT EXISTS (
           SELECT 1
-          FROM DuplicadosTipo d
-          WHERE d.tipo_duplicado = te.tipo_producto
+          FROM gestion_producto.TipoProducto p
+          WHERE p.nombre = te.tipo_producto
      );
+
 	--Verificación de categorías ya existentes pero que cambiaron de tipo de producto en el archivo.
 	WITH Duplicados_Modificados AS (
 	SELECT 
 		c.id AS id_categoria,  
-	        tp.id AS id_tipoProducto_nuevo
+	    tp.id AS id_tipoProducto_nuevo
 	FROM #TempImport te
-	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre  COLLATE MODERN_SPANISH_CI_AS
-	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre  COLLATE MODERN_SPANISH_CI_AS--Busco el id tipo_producto del archivo.
+	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre  
+	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre
 	WHERE tp.id <> c.id_tipoProducto --Donde coincida la categoría pero no el id_tipo_producto.
 	)
 	UPDATE c
@@ -69,29 +77,27 @@ BEGIN
 		FROM gestion_producto.TipoProducto tp
 		WHERE tp.id = dm.id_tipoProducto_nuevo
 	);
+
 	--Proceso para insertar las categorías obviando los duplicados.
-	WITH Duplicados_Categoria AS (
-	SELECT 
-	te.categoria
-	FROM #TempImport te 
-	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre COLLATE MODERN_SPANISH_CI_AS
-	)
 	INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
 	SELECT 
 		te.categoria,
 		tp.id
 	FROM #TempImport te JOIN gestion_producto.TipoProducto tp
-	ON te.tipo_producto = tp.nombre COLLATE MODERN_SPANISH_CI_AS
+	ON te.tipo_producto = tp.nombre 
 	WHERE 
     	te.categoria IS NOT NULL AND NOT EXISTS (
           SELECT 1
-          FROM Duplicados_Categoria c
-          WHERE c.categoria = te.categoria
+          FROM gestion_producto.Categoria c
+          WHERE c.nombre = te.categoria
      	);
 	DROP TABLE #TempImport
 END
-
-
+GO
+DECLARE @RutaArchivo NVARCHAR(255);
+SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx';
+EXEC Importar_TipoProducto @RutaArchivo;
+GO
 CREATE OR ALTER PROCEDURE Importar_Medios_de_Pago
     @RutaArchivo NVARCHAR(255)
 AS
@@ -119,14 +125,15 @@ BEGIN
     INSERT INTO gestion_venta.MedioDePago (nombre, descripcion)
     SELECT nombre, descripcion FROM #TempMedios
 	WHERE NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago m INNER JOIN #TempMedios t ON m.nombre = t.nombre)
-
+	--Cambiar lo del INNER JOIN (no es necesario)--
     DROP TABLE #TempMedios;
 END;
+GO
 
 DECLARE @RutaArchivo NVARCHAR(255);
 SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx';
 EXEC Importar_Medios_de_Pago @RutaArchivo;
-
+GO
 CREATE OR ALTER PROCEDURE Importar_Productos_Importados
 @RutaArchivo NVARCHAR(255)
 AS
@@ -200,10 +207,7 @@ GO
 DECLARE @RutaArchivo NVARCHAR(255);
 SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Productos_importados.xlsx'
 EXEC Importar_Productos_Importados @RutaArchivo
-
-ALTER TABLE gestion_producto.Producto
-ALTER COLUMN descripcion VARCHAR(100)
-
+GO
 CREATE OR ALTER PROCEDURE Importar_catalogo_csv
 @RutaArchivo NVARCHAR(400)
 AS
@@ -242,7 +246,7 @@ BEGIN
 			te.reference_price,
 			te.reference_unit
 		FROM #TempCatalogo te
-		INNER JOIN gestion_producto.Categoria c ON c.nombre = te.category COLLATE MODERN_SPANISH_CI_AS
+		INNER JOIN gestion_producto.Categoria c ON c.nombre = te.category 
 	)
 	INSERT INTO gestion_producto.Producto(descripcion, precio, id_categoria, precio_ref, unidad_ref)
 	SELECT 
@@ -255,7 +259,7 @@ BEGIN
 	WHERE NOT EXISTS (
 		SELECT 1 
 		FROM gestion_producto.Producto p 
-		WHERE p.descripcion = c.name COLLATE MODERN_SPANISH_CI_AS
+		WHERE p.descripcion = c.name
 	);
 	DROP TABLE #TempCatalogo;
 END
@@ -297,21 +301,19 @@ GO
 DECLARE @RutaArchivo NVARCHAR(255);
 SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\Electronic accessories.xlsx'
 EXEC Importar_Electronicos @RutaArchivo
-
-
 --Consultas y borrados--
+/*
 SELECT * FROM gestion_producto.Categoria
-SELECT * FROM gestion_producto.TipoProducto 
-SELECT * FROM gestion_venta.MedioDePago 
+SELECT * FROM gestion_producto.TipoProducto
+SELECT * FROM gestion_producto.Producto
+where descripcion = 'Macbook Pro Laptop'
+SELECT * FROM gestion_venta.MedioDePago
 SELECT * FROM #TempImport
---DELETE FROM gestion_venta.MedioDePago
---DELETE FROM gestion_producto.Categoria
---DELETE FROM gestion_producto.TipoProducto 
+DELETE FROM gestion_producto.Producto
+DELETE FROM gestion_producto.TipoProducto
+DELETE FROM gestion_producto.Categoria
+DELETE FROM gestion_venta.MedioDePago
 DBCC CHECKIDENT ('gestion_producto.Categoria', RESEED, 0);
+DBCC CHECKIDENT ('gestion_producto.Producto', RESEED, 0);
 DBCC CHECKIDENT ('gestion_producto.TipoProducto', RESEED, 0);
-DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);
-
-EXEC Importar_TipoProducto
-
-
-SELECT * FROM gestion_producto.Producto 
+DBCC CHECKIDENT ('gestion_venta.MedioDePago', RESEED, 0);*/
