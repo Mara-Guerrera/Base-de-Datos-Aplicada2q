@@ -11,6 +11,8 @@ CREATE OR ALTER PROCEDURE Importar_ventas_csv
 AS
 BEGIN
 
+	--DECLARE @RutaArchivo NVARCHAR(255)
+	--SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
 	DECLARE @Dinamico NVARCHAR(max)
 	IF OBJECT_ID('tempdb..#TempVentas') IS NOT NULL
     BEGIN
@@ -98,14 +100,15 @@ BEGIN
 
 	BEGIN TRANSACTION
 		BEGIN TRY
-		INSERT INTO gestion_venta.Factura(id_factura,id_tipoFactura,fecha,hora,id_medioDePago,id_sucursal)
+		INSERT INTO gestion_venta.Factura(id_factura,id_tipoFactura,fecha,hora,id_medioDePago,id_sucursal,id_empleado)
 		SELECT
 			te.id_factura,
 			tf.id id_tipoFactura,
 			TRY_CONVERT(DATE, te.fecha, 101) AS fecha,
 			CONVERT(TIME(7), te.hora) AS hora_convertida,
 			mp.id id_medioDePago,
-			s.id
+			s.id id_sucursal,
+			e.id id_empleado
 		FROM #TempVentas te 
 		JOIN gestion_venta.TipoFactura tf ON tf.nombre = te.tipo_factura
 		JOIN gestion_venta.MedioDePago mp ON mp.nombre = te.medio_pago 
@@ -115,6 +118,7 @@ BEGIN
 				(s.nombre = 'Lomas del mirador' AND te.ciudad = 'Mandalay') OR 
 				s.nombre = te.ciudad
 			)
+		JOIN gestion_sucursal.Empleado e ON e.legajo = te.empleado 
 		WHERE NOT EXISTS (
 		SELECT 1
 		FROM gestion_venta.Factura f
@@ -162,7 +166,11 @@ SELECT dv.id,p.descripcion
 FROM gestion_venta.DetalleVenta dv INNER JOIN gestion_producto.Producto p ON p.id = dv.id_producto 
 ORDER BY id_factura
 DELETE FROM gestion_venta.DetalleVenta
-select * from gestion_venta.Factura
+SELECT * from gestion_venta.Factura
+SELECT dv.id_factura, dv.id_producto, p.descripcion, dv.cantidad, dv.subtotal, dv.precio_unitario from gestion_venta.DetalleVenta dv
+JOIN gestion_producto.Producto p ON dv.id_producto = p.id
+ORDER BY dv.id_factura
 DELETE FROM gestion_venta.Factura
+DELETE FROM gestion_venta.DetalleVenta
 DBCC CHECKIDENT ('gestion_venta.Factura', RESEED, 0);
 DBCC CHECKIDENT ('gestion_venta.DetalleVenta', RESEED, 0);*/
