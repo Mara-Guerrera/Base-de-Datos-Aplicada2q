@@ -166,7 +166,7 @@ BEGIN
 
 		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @direccion) > 0
 		BEGIN
-			RAISERROR('La direccion solo puede contener letras, números y espacios.', 16, 1);
+			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
 		END
 
