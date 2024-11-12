@@ -250,7 +250,7 @@ BEGIN
 	FROM Duplicados d
 	WHERE d.cant > 1 
 	AND d.RowNum < d.cant
-	)
+	);
 	--Inserción de productos en tabla gestion_producto.Producto--
 	WITH CTE AS (
 		SELECT 
