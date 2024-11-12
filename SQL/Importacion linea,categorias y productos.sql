@@ -247,15 +247,11 @@ BEGIN
 	)
 	DELETE FROM #TempCatalogo
 	WHERE id IN (
-    SELECT d.id
-    FROM Duplicados d
+	SELECT d.id
+	FROM Duplicados d
 	WHERE d.cant > 1 
-    AND d.RowNum < d.cant
-    AND (
-		(d.cant = 2 AND d.siguiente_precio <> 0.0)
-		OR
-		(d.cant > 2 AND d.price <> d.siguiente_precio)
-	)
+	AND d.RowNum < d.cant
+	AND d.price <> d.siguiente_precio)
 	);
 	--Inserción de productos en tabla gestion_producto.Producto--
 	WITH CTE AS (
