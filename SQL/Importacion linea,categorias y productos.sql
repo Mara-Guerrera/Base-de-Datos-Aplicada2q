@@ -211,6 +211,7 @@ CREATE OR ALTER PROCEDURE Importar_catalogo_csv
 @RutaArchivo NVARCHAR(400)
 AS
 BEGIN
+
 	DECLARE @Dinamico NVARCHAR(max)
 	IF OBJECT_ID('tempdb..#TempCatalogo') IS NOT NULL
     BEGIN
@@ -237,6 +238,27 @@ BEGIN
 	);'
 	exec sp_executesql @Dinamico; 
 
+	WITH Duplicados AS (
+    SELECT 
+        te.name, 
+        te.category,
+        te.price,
+        te.reference_price,
+        ROW_NUMBER() OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS RowNum,
+	COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant
+	FROM #TempCatalogo te
+	)
+	DELETE FROM #TempCatalogo
+	WHERE EXISTS (
+		SELECT *
+		FROM Duplicados d
+		WHERE cant > 1 AND RowNum < cant
+		AND d.name = #TempCatalogo.name
+		AND d.category = #TempCatalogo.category
+		AND d.price = #TempCatalogo.price
+		AND d.reference_price = #TempCatalogo.reference_price
+	);
+
 	WITH CTE AS (
 		SELECT 
 			te.name,
@@ -260,6 +282,7 @@ BEGIN
 		FROM gestion_producto.Producto p 
 		WHERE p.descripcion = c.name
 	);
+
 	DROP TABLE #TempCatalogo;
 END
 GO
