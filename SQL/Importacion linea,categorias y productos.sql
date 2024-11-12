@@ -242,13 +242,12 @@ BEGIN
 	exec sp_executesql @Dinamico; 
 	--Código para evitar duplicados: coincidencia de nombre de producto y categoría pero diferencia en precio--
 	WITH Duplicados AS (
-    SELECT 
-        te.name, 
+	te.name, 
 		te.id,
         te.category,
         te.price,
         te.reference_price,
-        ROW_NUMBER() OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS RowNum,
+        ROW_NUMBER() OVER (PARTITION BY te.name, te.category  ORDER BY te.id) AS RowNum,
 		COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant,
 		LEAD(te.price) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS next_price,
 		CASE 
@@ -257,7 +256,6 @@ BEGIN
 		END AS diferencia_de_precio
 		FROM #TempCatalogo te
 	)
-
 	DELETE FROM #TempCatalogo
 	WHERE id IN (
     SELECT d.id
