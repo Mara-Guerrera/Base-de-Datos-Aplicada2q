@@ -3,22 +3,6 @@ USE Com5600G05
 GO
 -- ============================ SP INSERCION GESTION_SUCURSAL =======================
 
--- CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Ciudad
--- 	@nombre VARCHAR(50)
--- AS
--- BEGIN
--- 	IF NOT EXISTS(SELECT 1 FROM gestion_sucursal.Ciudad WHERE nombre = @nombre COLLATE Latin1_General_CI_AI)
--- 	BEGIN
--- 		INSERT INTO gestion_sucursal.Ciudad(nombre) VALUES (@nombre)
--- 	END
--- 	ELSE
--- 	BEGIN
--- 		PRINT 'La ciudad a insertar ya existe.'
--- 		RETURN; -- acá no haría falta un RETURN porque no hay más sentencias fuera de este IF
--- 	END
--- END
--- GO
-
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Sucursal
     @nombre VARCHAR(30),
     @direccion VARCHAR(100),
@@ -119,75 +103,28 @@ BEGIN
 END
 GO
 
-/*
 CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
-	@nombre VARCHAR(50),
-	@apellido VARCHAR(50),
-	@id_sucursal_empleado INT
+	@legajo				INT,
+	@nombre				VARCHAR(30),
+	@apellido			VARCHAR(30),
+	@dni				BIGINT,
+	@direccion			VARCHAR(160),
+	@cuil				CHAR(13),
+	@email				VARCHAR(60),
+	@email_empresa		VARCHAR(60),
+	@id_cargo			INT,
+	@id_sucursal		INT,
+	@id_turno			INT
 AS
 BEGIN
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado
-		WHERE id_sucursal = @id_sucursal_empleado AND nombre = @nombre AND apellido = @apellido AND activo = 1 )
-    BEGIN
-        PRINT 'Error: El empleado ya existe.';
-        RETURN;
-    END
-
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE @id_sucursal_empleado = id AND activo = 1)
+	IF @legajo IS NULL
 	BEGIN
-		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE nombre = @nombre AND apellido = @apellido AND activo = 0)
-		BEGIN
-			UPDATE gestion_sucursal.Empleado
-            SET activo = 1
-            WHERE @nombre = nombre COLLATE Latin1_General_CI_AI and activo = 0;
-			
-			PRINT 'El empleado se dió de alta.';
-			RETURN;
-		END
-
-		INSERT INTO gestion_sucursal.Empleado(nombre, apellido, id_sucursal, activo)
-		VALUES (@nombre, @apellido, @id_sucursal_empleado, 1)
-		PRINT 'Nuevo empleado insertado con exito.'
-	END
-	ELSE
-	BEGIN
-		PRINT 'El id de sucursal: ' + CAST(@id_sucursal_empleado AS VARCHAR(10)) + ' no es válido.';
-	END
-END
-GO */
-
-CREATE OR ALTER PROCEDURE gestion_sucursal.Insertar_Empleado
-	@cuil			CHAR(13), -- puede ser NULL
-	@email			VARCHAR(60), -- podria ser NULL
-	@email_empresa		VARCHAR(60) NOT NULL,
-	@id_cargo		INT NOT NULL,
-	@id_sucursal		INT NOT NULL,
-	@id_turno		INT NOT NULL
-AS
-BEGIN
-	DECLARE @cantEmpleados INT
-	SELECT @cantEmpleados = COUNT(*) FROM gestion_sucursal.Empleado WHERE email_empresa = @email_empresa
-
-	IF @cantEmpleados > 1
-	BEGIN
-		PRINT 'Existe mas de un empleado con ese correo asignado por la empresa'; -- No deberia pasar
+		RAISERROR('El legajo no puede ser nulo', 16, 1);
 		RETURN;
 	END
-		-- Si no hay empleados con ese email_empresa y la sucursal esta activa
-	IF @cantEmpleados = 0 AND EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
-	BEGIN
-		INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
-		VALUES (@cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
-		PRINT 'Nuevo empleado insertado con exito.'
-		RETURN;
-	END
-	-- Se que solo hay un empleado con dicho email_empresa
-	-- Busco su ID. Seria mas seguro con el cuil, pero no siempre me lo daran
-	DECLARE @empleadoID INT
-	SELECT @empleadoID = id FROM gestion_sucursal.Empleado WHERE email_empresa = @email_empresa
 
 	-- Si el empleado esta activo en la misma sucursal
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID AND id_sucursal = @id_sucursal AND activo = 1)
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE legajo = @legajo AND id_sucursal = @id_sucursal AND activo = 1)
     BEGIN
         PRINT 'Error: El empleado ya existe.';
         RETURN;
@@ -197,23 +134,67 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
 	BEGIN
 	--  pero el empleado no
-		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @empleadoID AND activo = 0)
+		IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE legajo = @legajo AND activo = 0)
 		BEGIN
 			UPDATE gestion_sucursal.Empleado
-            		SET activo = 1
-            		WHERE email_empresa = @email_empresa AND activo = 0;
+            SET activo = 1
+            WHERE legajo = @legajo AND activo = 0;
 			
 			PRINT 'El empleado se dió de alta.';
 			RETURN;
 		END
+		-- Si no hay empleados con ese legajo
+		IF @nombre IS NULL OR @apellido IS NULL OR @dni IS NULL OR @email_empresa IS NULL OR
+			@id_cargo IS NULL OR @id_sucursal IS NULL OR @id_turno IS NULL
+		BEGIN
+			RAISERROR('Los campos: nombre, apellido, dni, email_empresa, id_cargo, id_sucursal y id_turno NO pueden ser NULL.', 16, 1);
+			RETURN;
+		END
 
-		INSERT INTO gestion_sucursal.Empleado(cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
-		VALUES (@cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
+		-- Verificar si el nombre contiene solo letras y espacios
+		IF PATINDEX('%[^a-zA-Z ]%', @nombre) > 0 OR PATINDEX('%[^a-zA-Z ]%', @apellido) > 0
+		BEGIN
+			RAISERROR('El nombre y apellido solo pueden contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
+		 -- Verificar que haya solo un espacio si tiene mas de un nombre o apellido
+		IF LEN(@nombre) - LEN(REPLACE(@nombre, ' ', '')) > 1 OR LEN(@apellido) - LEN(REPLACE(@apellido, ' ', '')) > 1
+		BEGIN
+			RAISERROR('El nombre solo pueden contener un único espacio entre los dos nombres. Lo mismo con el apellido.', 16, 1);
+			RETURN;
+		END
+
+		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9 ]%', @direccion) > 0
+		BEGIN
+			RAISERROR('La direccion solo puede contener letras, números y espacios.', 16, 1);
+			RETURN;
+		END
+
+		IF @cuil IS NOT NULL AND @cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		BEGIN
+			RAISERROR('El cuil no tiene un formato válido', 16, 1);
+			RETURN;
+		END
+		-- Verificar si el correo electronico tiene un formato básico válido
+		IF @email IS NOT NULL AND PATINDEX('%[A-Za-z0-9._%+-]%@[A-Za-z0-9.-]%.[A-Za-z]{2,4}%', @email) = 0
+		BEGIN
+			RAISERROR('El email no tiene un formato de correo electrónico válido.', 16, 1);
+			RETURN;
+		END
+
+		IF PATINDEX('%[A-Za-z0-9._%+-]%@[A-Za-z0-9.-]%.[A-Za-z]{2,4}%', @email_empresa) = 0
+		BEGIN
+			RAISERROR('El email_empresa no tiene un formato de correo electrónico válido.', 16, 1);
+			RETURN;
+		END
+
+		INSERT INTO gestion_sucursal.Empleado(legajo, nombre, apellido, dni, direccion, cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
+		VALUES (@legajo, @nombre, @apellido, @dni, @direccion, @cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
 		PRINT 'Nuevo empleado insertado con exito.'
 	END
 	ELSE
 	BEGIN
-		PRINT 'El id de sucursal: ' + CAST(@id_sucursal_empleado AS VARCHAR(10)) + ' no es válido.';
+		PRINT 'El id de sucursal: ' + CAST(@id_sucursal AS VARCHAR(10)) + ' no es válido.';
 	END
 END
 GO
