@@ -212,6 +212,9 @@ CREATE OR ALTER PROCEDURE Importar_catalogo_csv
 AS
 BEGIN
 
+	DECLARE @RutaArchivo NVARCHAR(255);
+	SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Productos\catalogo.csv'
+
 	DECLARE @Dinamico NVARCHAR(max)
 	IF OBJECT_ID('tempdb..#TempCatalogo') IS NOT NULL
     BEGIN
@@ -237,28 +240,33 @@ BEGIN
 		FIRSTROW = 2
 	);'
 	exec sp_executesql @Dinamico; 
-
+	--Código para evitar duplicados: coincidencia de nombre de producto y categoría pero diferencia en precio--
 	WITH Duplicados AS (
     SELECT 
         te.name, 
+		te.id,
         te.category,
         te.price,
         te.reference_price,
         ROW_NUMBER() OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS RowNum,
-	COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant
-	FROM #TempCatalogo te
+		COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant,
+		LEAD(te.price) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS next_price,
+		CASE 
+        WHEN LEAD(te.price) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) = te.price THEN 0
+        ELSE 1
+		END AS diferencia_de_precio
+		FROM #TempCatalogo te
 	)
-	DELETE FROM #TempCatalogo
-	WHERE EXISTS (
-		SELECT *
-		FROM Duplicados d
-		WHERE cant > 1 AND RowNum < cant
-		AND d.name = #TempCatalogo.name
-		AND d.category = #TempCatalogo.category
-		AND d.price = #TempCatalogo.price
-		AND d.reference_price = #TempCatalogo.reference_price
-	);
 
+	DELETE FROM #TempCatalogo
+	WHERE id IN (
+    SELECT d.id
+    FROM Duplicados d
+	WHERE d.cant > 1 
+    AND d.RowNum < d.cant
+    AND d.diferencia_de_precio = 1
+	);
+	--Inserción de productos en tabla gestion_producto.Producto--
 	WITH CTE AS (
 		SELECT 
 			te.name,
