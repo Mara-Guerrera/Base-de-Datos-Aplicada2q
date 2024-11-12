@@ -172,7 +172,7 @@ BEGIN
 
 		IF @cuil IS NOT NULL AND @cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 		BEGIN
-			RAISERROR('El cuil no tiene un formato válido', 16, 1);
+			RAISERROR('El cuil no tiene un formato válido: 99-99999999-9', 16, 1);
 			RETURN;
 		END
 		-- Verificar si el correo electronico tiene un formato básico válido
