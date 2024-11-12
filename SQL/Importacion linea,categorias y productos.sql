@@ -235,15 +235,14 @@ BEGIN
 	--Código para evitar duplicados: coincidencia de nombre de producto y categoría pero diferencia en precio--
 	WITH Duplicados AS (
 	SELECT
-		te.name, 
-		te.id,
+	te.name, 
+	te.id,
         te.category,
         te.price,
         te.reference_price,
         ROW_NUMBER() OVER (PARTITION BY te.name, te.category  ORDER BY te.id) AS RowNum,
-		COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant,
-		LEAD(CAST(te.price AS DECIMAL(7,2)), 1, 0.0) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS siguiente_precio
-		FROM #TempCatalogo te
+	COUNT(1) OVER (PARTITION BY te.name, te.category ORDER BY (SELECT NULL)) AS cant
+	FROM #TempCatalogo te
 	)
 	DELETE FROM #TempCatalogo
 	WHERE id IN (
@@ -251,8 +250,7 @@ BEGIN
 	FROM Duplicados d
 	WHERE d.cant > 1 
 	AND d.RowNum < d.cant
-	AND d.price <> d.siguiente_precio)
-	);
+	)
 	--Inserción de productos en tabla gestion_producto.Producto--
 	WITH CTE AS (
 		SELECT 
