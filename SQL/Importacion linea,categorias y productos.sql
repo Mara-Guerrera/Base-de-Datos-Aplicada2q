@@ -24,12 +24,11 @@ RECONFIGURE;
 GO*/
 USE Com5600G05
 GO
-
-CREATE OR ALTER PROCEDURE Importar_TipoProducto
+CREATE OR ALTER PROCEDURE Importar_TipoProducto_Categoria
 @Ruta NVARCHAR(400)
 AS
 BEGIN
-
+	
 	DECLARE @Dinamico NVARCHAR(MAX);
 	CREATE TABLE #TempImport
 	(
@@ -56,27 +55,6 @@ BEGIN
           FROM gestion_producto.TipoProducto p
           WHERE p.nombre = te.tipo_producto
      );
-
-	--Verificación de categorías ya existentes pero que cambiaron de tipo de producto en el archivo.
-	WITH Duplicados_Modificados AS (
-	SELECT 
-		c.id AS id_categoria,  
-	    tp.id AS id_tipoProducto_nuevo
-	FROM #TempImport te
-	JOIN gestion_producto.Categoria c ON te.categoria = c.nombre  
-	JOIN gestion_producto.TipoProducto tp ON te.tipo_producto = tp.nombre
-	WHERE tp.id <> c.id_tipoProducto --Donde coincida la categoría pero no el id_tipo_producto.
-	)
-	UPDATE c
-	SET c.id_tipoProducto = dm.id_tipoProducto_nuevo
-	FROM gestion_producto.Categoria c
-	JOIN Duplicados_Modificados dm ON c.id = dm.id_categoria
-	--Verifico que el id_tipoProducto_nuevo exista.
-	WHERE EXISTS (
-		SELECT 1
-		FROM gestion_producto.TipoProducto tp
-		WHERE tp.id = dm.id_tipoProducto_nuevo
-	);
 
 	--Proceso para insertar las categorías obviando los duplicados.
 	INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
@@ -138,6 +116,7 @@ CREATE OR ALTER PROCEDURE Importar_Productos_Importados
 @RutaArchivo NVARCHAR(255)
 AS
 BEGIN
+
 	DECLARE @Dinamico NVARCHAR(MAX);
 	IF OBJECT_ID('tempdb..#TempImportados') IS NOT NULL
     BEGIN
@@ -161,7 +140,7 @@ BEGIN
 
 
 	EXEC sp_executesql @Dinamico;
-	SELECT * FROM #TempImportados
+
 	--Inserción de categorías que no estén cargadas previamente en la base de datos--
 	INSERT INTO gestion_producto.Categoria(nombre)
 	SELECT DISTINCT ti.Categoria
@@ -172,6 +151,7 @@ BEGIN
 		FROM gestion_producto.Categoria c
 		WHERE ti.Categoria LIKE '%' + c.nombre + '%'
 	);
+	--Inserción de proveedores que no estén cargados previamente en la base de datos--
 	INSERT INTO gestion_producto.Proveedor(nombre)
 	SELECT DISTINCT ti.Proveedor
 	FROM #TempImportados ti
@@ -181,17 +161,32 @@ BEGIN
 		FROM gestion_producto.Proveedor p
 		WHERE ti.Proveedor = p.nombre
 	);
+	--Manejo de duplicados (productos ya existentes) pero con precios nuevos--
+	WITH Duplicados_a_Actualizar AS
+	(
+		SELECT p.id id_producto, ti.PrecioUnidad precio_nuevo
+		FROM gestion_producto.Producto p INNER JOIN #TempImportados ti 
+		ON p.descripcion = ti.NombreProducto
+		INNER JOIN gestion_producto.Categoria c ON p.id_categoria = c.id
+		WHERE p.precio <> ti.PrecioUnidad AND c.nombre = ti.Categoria
+	)
+	UPDATE p
+	SET p.precio = d.precio_nuevo
+	FROM gestion_producto.Producto p
+	INNER JOIN Duplicados_a_Actualizar d ON p.id = d.id_producto;
 
 	--Inserción de productos--
 	INSERT INTO gestion_producto.Producto(descripcion, precio, cant_por_unidad, id_categoria,id_proveedor)
 	SELECT 
 	ti.NombreProducto, 
 	CAST(ti.PrecioUnidad AS DECIMAL(7,2)) PrecioUnidad,
-	ti.CantidadPorUnidad,( 
+	ti.CantidadPorUnidad,
+	( 
 	SELECT TOP 1 c.id
 	FROM gestion_producto.Categoria c
 	WHERE ti.Categoria LIKE '%' + c.nombre + '%'
-	ORDER BY c.id) AS id_categoria,
+	ORDER BY c.id
+	) AS id_categoria,
 	CAST(pv.id AS INT) id_proveedor
 	FROM #TempImportados ti
 	JOIN gestion_producto.Proveedor pv ON pv.nombre = ti.Proveedor
@@ -297,6 +292,7 @@ CREATE OR ALTER PROCEDURE Importar_Electronicos
 @RutaArchivo NVARCHAR(400)
 AS
 BEGIN
+
 	DECLARE @Dinamico NVARCHAR(max)
 	IF OBJECT_ID('tempdb..#TempElectronico') IS NOT NULL
     BEGIN
@@ -304,6 +300,7 @@ BEGIN
     END
 	CREATE TABLE #TempElectronico
 	(
+		id INT IDENTITY(1,1),
 		Nombre_Producto VARCHAR(100),
 		Precio_Unitario DECIMAL(7,2)
 	)
@@ -315,8 +312,22 @@ BEGIN
 					''SELECT [Product],[Precio Unitario en dolares] FROM [Sheet1$]'');';
 
 	EXEC sp_executesql @Dinamico;
+	--Búsqueda de Duplicados dentro del mismo archivo--
+	WITH Duplicados AS
+	(	SELECT 
+		id,
+		ROW_NUMBER() OVER (PARTITION BY te.Nombre_Producto ORDER BY (SELECT NULL)) AS RowNum
+		FROM #TempElectronico te
+	)
+	DELETE FROM #TempElectronico 
+	WHERE id IN (
+	SELECT d.id
+	FROM Duplicados d
+	WHERE RowNum > 1
+	)
+	--Inserción en tabla gestion_producto.Producto--
 	INSERT INTO gestion_producto.Producto(descripcion,precio)
-	SELECT * FROM #TempElectronico te
+	SELECT Nombre_Producto,Precio_Unitario FROM #TempElectronico te
 	WHERE NOT EXISTS (
 	SELECT 1
 	FROM gestion_producto.Producto p WHERE p.descripcion = te.Nombre_Producto
