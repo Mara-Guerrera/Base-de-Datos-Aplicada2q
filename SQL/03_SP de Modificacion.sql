@@ -140,30 +140,93 @@ BEGIN
 END;
 GO
 
-
 CREATE OR ALTER PROCEDURE gestion_sucursal.Modificar_Empleado
-    @id				INT NOT NULL,
-	@cuil			CHAR(13) = NULL,
-	@email			VARCHAR(60) = NULL,
-	@email_empresa	VARCHAR(60) = NULL,
-	@id_cargo		INT = NULL,
-	@id_sucursal	INT = NULL,
-	@id_turno		INT = NULL
+    @id					INT,
+	@legajo				INT = NULL,
+	@nombre				VARCHAR(30) = NULL,
+	@apellido			VARCHAR(30) = NULL,
+	@dni				BIGINT = NULL,
+	@direccion			VARCHAR(160) = NULL,
+	@cuil				CHAR(13) = NULL,
+	@email				VARCHAR(60) = NULL,
+	@email_empresa		VARCHAR(60) = NULL,
+	@id_cargo			INT = NULL,
+	@id_sucursal		INT = NULL,
+	@id_turno			INT = NULL
 AS
 BEGIN
-	IF @cuil IS NULL AND @email IS NULL AND @email_empresa IS NULL
+	IF @legajo IS NULL AND @nombre IS NULL AND @apellido IS NULL AND @dni IS NULL AND @direccion IS NULL AND
+		@cuil IS NULL AND @email IS NULL AND @email_empresa IS NULL
 		AND @id_cargo IS NULL AND @id_sucursal IS NULL AND @id_turno IS NULL
     BEGIN
-		PRINT 'Error: No ingresó los datos que se quieren modificar.';
+		RAISERROR('No se ingresó los datos que se quieren modificar.', 16, 1);
 		RETURN;
 	END
 
     -- Verificar si el empleado existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id AND activo = 1)
     BEGIN
+		-- Verificar si el nombre contiene solo letras y espacios
+		IF @nombre IS NOT NULL
+		BEGIN
+			IF PATINDEX('%[^a-zA-Z ]%', @nombre) > 0
+			BEGIN
+				RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+				RETURN;
+			END
+			IF LEN(@nombre) - LEN(REPLACE(@nombre, ' ', '')) > 1
+			BEGIN
+				RAISERROR('El nombre solo puede contener un único espacio entre los dos nombres.', 16, 1);
+				RETURN;
+			END
+		END
+
+		IF @apellido IS NOT NULL
+		BEGIN
+			IF PATINDEX('%[^a-zA-Z ]%', @apellido) > 0
+			BEGIN
+				RAISERROR('El apellido solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+				RETURN;
+			END
+			IF LEN(@apellido) - LEN(REPLACE(@apellido, ' ', '')) > 1
+			BEGIN
+				RAISERROR('El apellido solo puede contener un único espacio entre los dos apellidos.', 16, 1);
+				RETURN;
+			END
+		END
+
+		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @direccion) > 0
+		BEGIN
+			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RETURN;
+		END
+
+		IF @cuil IS NOT NULL AND @cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		BEGIN
+			RAISERROR('El cuil no tiene un formato válido: 99-99999999-9', 16, 1);
+			RETURN;
+		END
+		-- Verificar si el correo electronico tiene un formato básico válido
+		IF @email IS NOT NULL AND PATINDEX('%[A-Za-z0-9._%+-]%@[A-Za-z0-9.-]%.[A-Za-z]{2,4}%', @email) = 0
+		BEGIN
+			RAISERROR('El email no tiene un formato de correo electrónico válido.', 16, 1);
+			RETURN;
+		END
+
+		IF @email_empresa IS NOT NULL AND PATINDEX('%[A-Za-z0-9._%+-]%@[A-Za-z0-9.-]%.[A-Za-z]{2,4}%', @email_empresa) = 0
+		BEGIN
+			RAISERROR('El email_empresa no tiene un formato de correo electrónico válido.', 16, 1);
+			RETURN;
+		END
+
 	-- Los campos no nulos se modifican, el resto quedan con los datos iniciales
 		UPDATE gestion_sucursal.Empleado
 		SET
+			legajo = ISNULL(@legajo, legajo),
+			nombre = ISNULL(@nombre, nombre),
+			apellido = ISNULL(@apellido, apellido),
+			dni = ISNULL(@dni, dni),
+			direccion = ISNULL(@direccion, direccion),
 			cuil = ISNULL(@cuil, cuil),
 			email = ISNULL(@email, email),
 			email_empresa = ISNULL(@email_empresa, email_empresa),
