@@ -11,8 +11,6 @@ CREATE OR ALTER PROCEDURE Importar_ventas_csv
 AS
 BEGIN
 
-	--DECLARE @RutaArchivo NVARCHAR(255)
-	--SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
 	DECLARE @Dinamico NVARCHAR(max)
 	IF OBJECT_ID('tempdb..#TempVentas') IS NOT NULL
     BEGIN
@@ -47,7 +45,6 @@ BEGIN
 
 	exec sp_executesql @Dinamico; 
 
-	--SELECT * FROM #TempVentas
 	--Inserción de tipos de factura-- Revisar si es lo más óptimo (hay 1000 registros)
 	INSERT INTO gestion_venta.TipoFactura(nombre)
 	SELECT DISTINCT tipo_factura
@@ -127,22 +124,27 @@ BEGIN
 
 		INSERT INTO gestion_venta.DetalleVenta(id_factura, cantidad, precio_unitario, id_producto, subtotal)
 		SELECT 
-			te.id_factura, 
+			f.id AS id_factura_interno,
 			te.cantidad, 
-			precio_unitario, 
-			producto.id id_producto,
-			(precio_unitario * cantidad) AS subtotal
+			te.precio_unitario, 
+			(SELECT TOP 1 p.id 
+			FROM gestion_producto.Producto p 
+			WHERE te.producto = p.descripcion) AS id_producto,
+			(te.precio_unitario * te.cantidad) AS subtotal
 		FROM 
-			#TempVentas te 
+		#TempVentas te 
 		JOIN 
-			gestion_producto.Producto producto 
+			gestion_venta.Factura f 
 		ON 
-			producto.descripcion = te.producto
-		WHERE NOT EXISTS (
-		SELECT 1
-		FROM gestion_venta.DetalleVenta dv
-		WHERE dv.id_factura = te.id_factura
-		  AND dv.id_producto = producto.id
+			f.id_factura = te.id_factura
+		WHERE 
+		NOT EXISTS (
+			SELECT 1
+			FROM gestion_venta.DetalleVenta dv
+			WHERE dv.id_factura = f.id
+			  AND dv.id_producto = (SELECT TOP 1 p.id 
+									FROM gestion_producto.Producto p 
+									WHERE te.producto = p.descripcion)
 		);
 		COMMIT TRANSACTION;
 		END TRY
@@ -159,18 +161,14 @@ DECLARE @RutaArchivo NVARCHAR(255);
 SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Ventas_registradas.csv'
 EXEC Importar_ventas_csv @RutaArchivo
 
-
-
-/*SELECT * from #TempVentas;
-SELECT dv.id,p.descripcion
-FROM gestion_venta.DetalleVenta dv INNER JOIN gestion_producto.Producto p ON p.id = dv.id_producto 
-ORDER BY id_factura
+/*
+SELECT * FROM gestion_venta.DetalleVenta
+SELECT * FROM gestion_venta.Factura
+SELECT * FROM gestion_venta.TipoFactura
 DELETE FROM gestion_venta.DetalleVenta
-SELECT * from gestion_venta.Factura
-SELECT dv.id_factura, dv.id_producto, p.descripcion, dv.cantidad, dv.subtotal, dv.precio_unitario from gestion_venta.DetalleVenta dv
-JOIN gestion_producto.Producto p ON dv.id_producto = p.id
-ORDER BY dv.id_factura
 DELETE FROM gestion_venta.Factura
-DELETE FROM gestion_venta.DetalleVenta
+DELETE FROM gestion_venta.TipoFactura
 DBCC CHECKIDENT ('gestion_venta.Factura', RESEED, 0);
-DBCC CHECKIDENT ('gestion_venta.DetalleVenta', RESEED, 0);*/
+DBCC CHECKIDENT ('gestion_venta.DetalleVenta', RESEED, 0);
+DBCC CHECKIDENT ('gestion_venta.TipoFactura', RESEED, 0);
+*/
