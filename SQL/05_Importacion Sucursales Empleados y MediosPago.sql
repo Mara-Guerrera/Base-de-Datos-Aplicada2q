@@ -3,7 +3,7 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			María del Pilar Bourdieu
+			María del Pilar Bourdieu 45289653
 			Abigail Karina Peñafiel Huayta	41913506
 			Federico Pucci 41106855
 			Mara Verónica Guerrera
@@ -101,26 +101,25 @@ BEGIN
     END
     CREATE TABLE #TempEmpleados (
 		Legajo				INT,
-		Nombre				VARCHAR(30),
-		Apellido			VARCHAR(30),
-		DNI					CHAR(8),
+		Nombre				VARCHAR(40),
+		Apellido			VARCHAR(40),
+		DNI					BIGINT,
 		Direccion			VARCHAR(160),
-		email_personal		VARCHAR(80),
+        email_personal		VARCHAR(80),
 		email_empresa		VARCHAR(80),
-		CUIL				CHAR(13),
+        CUIL				CHAR(13),
 		Cargo				VARCHAR(20),
 		Sucursal			VARCHAR(20),
 		Turno				VARCHAR(20)
-	);
-
+    );
 	SET @Dinamico = N'
-	INSERT INTO #TempEmpleados (Legajo, Nombre, Apellido, DNI, Direccion, email_personal, email_empresa, CUIL, Cargo, Sucursal, Turno)
+	INSERT INTO #TempEmpleados (legajo, nombre, apellido, dni, direccion, email_personal, email_empresa, CUIL, Cargo, Sucursal, Turno)
 	SELECT 
 		 [Legajo/ID] Legajo,
 		 Nombre,
 		 Apellido,
 		 DNI,
-		 Direccion
+		 Direccion,
 		 [email personal] email_personal,
 		 [email empresa] email_empresa,
 		 CUIL,
@@ -130,9 +129,10 @@ BEGIN
 	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
 					''Excel 12.0;Database=' + @Ruta + N';HDR=YES'',
 					''SELECT [Legajo/ID], Nombre, Apellido, DNI, Direccion, [email personal], [email empresa], CUIL, Cargo, Sucursal, Turno FROM [Empleados$]'');'
-		
-	EXEC sp_executesql @Dinamico;
 
+
+	EXEC sp_executesql @Dinamico;
+	SELECT * FROM #TempEmpleados
 	INSERT INTO gestion_sucursal.Turno (descripcion)
 	SELECT DISTINCT Turno
 	FROM #TempEmpleados te
@@ -156,17 +156,17 @@ BEGIN
 	WITH CTE AS
 	(
 		SELECT 
-		Legajo AS empleadoLEG,
-		Nombre AS empleadoNOM,
-		Apellido AS empleadoAPE,
-		DNI AS empleadoDNI,
-		Direccion AS empleadoDIR,
-		email_personal AS empleadoEMAIL,
-		email_empresa AS empleadoEMP,
-		CUIL AS empleadoCUIL,
-		tu.id AS turnoID,
-		c.id AS cargoID,
-		s.id AS sucursalID
+		te.Legajo,
+		te.Nombre,
+		te.Apellido,
+		te.DNI,
+		te.Direccion,
+		email_personal,
+		email_empresa,
+		CUIL,
+		tu.id id_turno,
+		c.id id_cargo,
+		s.id id_sucursal
 		FROM #TempEmpleados te 
 		INNER JOIN gestion_sucursal.Turno tu ON tu.descripcion = te.turno
 		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
@@ -175,52 +175,13 @@ BEGIN
 		WHERE te.Legajo IS NOT NULL AND NOT EXISTS (
             	SELECT 1 
             	FROM gestion_sucursal.Empleado e 
-				WHERE e.legajo = te.Legajo --Cambio a legajo que es NOT NULL
+				WHERE e.legajo = te.Legajo
        	 	)
 	)
 	INSERT INTO gestion_sucursal.Empleado (legajo, nombre, apellido, dni, direccion, email, email_empresa, cuil, id_turno, id_cargo, id_sucursal)
 	SELECT *
-	FROM CTE;
-
--- Para actualizar
-	WITH CTE2 AS
-	(
-		SELECT 
-		Legajo AS empleadoLEG,
-		Nombre AS empleadoNOM,
-		Apellido AS empleadoAPE,
-		DNI AS empleadoDNI,
-		Direccion AS empleadoDIR,
-		email_personal AS empleadoEMAIL,
-		email_empresa AS empleadoEMP,
-		CUIL AS empleadoCUIL,
-		tu.id AS turnoID,
-		c.id AS cargoID,
-		s.id AS sucursalID
-		FROM #TempEmpleados te 
-		INNER JOIN gestion_sucursal.Turno tu ON tu.descripcion = te.turno
-		INNER JOIN gestion_sucursal.Cargo c ON c.nombre = te.Cargo
-		INNER JOIN gestion_sucursal.Sucursal s ON s.nombre = te.Sucursal
-		
-		WHERE te.Legajo IS NOT NULL AND EXISTS (
-            	SELECT 1 
-            	FROM gestion_sucursal.Empleado e 
-				WHERE e.legajo = te.Legajo
-       	 	)
-	)
-	UPDATE gestion_sucursal.Empleado
-	SET 
-		nombre = ISNULL(CTE2.empleadoNOM, nombre),
-		apellido = ISNULL(CTE2.empleadoAPE, apellido),
-		dni = ISNULL(CTE2.empleadoDNI, dni),
-		direccion = ISNULL(CTE2.empleadoDIR, direccion),
-		cuil = ISNULL(CTE2.empleadoCUIL, cuil),
-		email = ISNULL(CTE2.empleadoEMAIL, email),
-		email_empresa = ISNULL(CTE2.empleadoEMP, email_empresa),
-		id_turno = ISNULL(CTE2.turnoID, id_turno),
-		id_cargo = ISNULL(CTE2.cargoID, id_cargo),
-		id_sucursal = ISNULL(CTE2.sucursalID, id_sucursal)
-	FROM CTE2;
+	FROM CTE cte
+	WHERE NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado e INNER JOIN cte ON e.legajo = cte.legajo);
 
     -- Limpiar la tabla temporal
     DROP TABLE #TempEmpleados;
@@ -251,5 +212,7 @@ DBCC CHECKIDENT ('gestion_sucursal.Turno', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Sucursal', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Empleado', RESEED, 0);
 */
+
+
 
 
