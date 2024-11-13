@@ -107,7 +107,6 @@ BEGIN
     DROP TABLE #TempMedios;
 END;
 GO
-
 DECLARE @RutaArchivo NVARCHAR(255);
 SET @RutaArchivo = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx';
 EXEC Importar_Medios_de_Pago @RutaArchivo;
