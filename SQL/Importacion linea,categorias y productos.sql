@@ -232,6 +232,17 @@ BEGIN
 		FIRSTROW = 2
 	);'
 	exec sp_executesql @Dinamico; 
+	--Registros detectados con errores de interpretación que no se corrigen con el CODEPAGE-
+
+	UPDATE #TempCatalogo
+	SET name = REPLACE(REPLACE(name, 'a?ojo', 'añojo'), 'aå˜ojo', 'añojo')
+	WHERE name LIKE '%a?ojo%' 
+	OR name LIKE '%aå˜ojo%';
+
+	UPDATE #TempCatalogo
+	SET name = REPLACE(name, 'traslÃºcido', 'traslúcido')
+	WHERE name LIKE '%traslÃºcido%';
+
 	--Código para evitar duplicados: coincidencia de nombre de producto y categoría pero diferencia en precio--
 	WITH Duplicados AS (
 	SELECT
