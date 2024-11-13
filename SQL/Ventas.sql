@@ -95,6 +95,10 @@ BEGIN
 	SET producto = REPLACE(producto, 'Âº', 'º')
 	WHERE producto LIKE '%Âº%';
 
+	UPDATE #TempVentas
+	SET producto = REPLACE(producto, 'aå˜ojo', 'añojo')
+	WHERE producto LIKE '%aå˜ojo%';
+	
 	BEGIN TRANSACTION
 		BEGIN TRY
 		INSERT INTO gestion_venta.Factura(id_factura,id_tipoFactura,fecha,hora,id_medioDePago,id_sucursal,id_empleado)
