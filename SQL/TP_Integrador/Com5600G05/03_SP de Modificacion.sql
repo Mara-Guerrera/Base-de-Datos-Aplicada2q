@@ -17,10 +17,10 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
 AS
 BEGIN
     -- Verificar si la sucursal existe y está activa
-	    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
-	    BEGIN
-	-- Validar la direccion
-		IF @direccion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
+    BEGIN
+		-- Validar la direccion
+		IF @direccion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
 		BEGIN
 			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
@@ -35,7 +35,7 @@ BEGIN
 */
 		IF PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
 		BEGIN
-			RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
+			RAISERROR('El formato del teléfono no es válido: 5555-5555.', 16, 1);
 			RETURN;
 		END
 
@@ -56,11 +56,11 @@ BEGIN
 	END
 END;
 GO
-	
+
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Turno];
 GO
-	
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
 	@id INT,
 	@descripcion VARCHAR(16) = NULL
@@ -70,9 +70,9 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
 	BEGIN
 		-- Validar la descripción
-		IF @descripcion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ, ]%', @descripcion) > 0
+		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ, ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras, comas y espacios.', 16, 1);
+			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
 		END
 
@@ -86,7 +86,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Turno con ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró un Turno con el ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -104,9 +104,9 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
 	BEGIN
         -- Validar el nombre
-		IF @nombre IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
@@ -157,23 +157,23 @@ BEGIN
 		-- Verificar si el nombre contiene solo letras y espacios
 		IF @nombre IS NOT NULL
 		BEGIN
-			IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
+			IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
 			BEGIN
-				RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+				RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 				RETURN;
 			END
 		END
 
 		IF @apellido IS NOT NULL
 		BEGIN
-			IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
+			IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 			BEGIN
-				RAISERROR('El apellido solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+				RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 				RETURN;
 			END
 		END
 
-		IF @direccion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
+		IF @direccion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
 		BEGIN
 			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
@@ -229,9 +229,9 @@ BEGIN
 	-- Verificar si el tipo de cliente existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
 	BEGIN
-		IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
+		IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 		-- Actualizar el registro
@@ -293,15 +293,15 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id)
 	BEGIN
 		-- Validar el nombre y apellido
-		IF @nombre IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
-		IF @apellido IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
+		IF @apellido IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 		BEGIN
-			RAISERROR('El apellido solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
@@ -326,7 +326,7 @@ BEGIN
 			apellido = COALESCE(@apellido, apellido),
 			id_tipo = COALESCE(@id_tipo, id_tipo),
 			id_genero = COALESCE(@id_genero, id_genero)
-        	WHERE id = @id;
+        WHERE id = @id;
 
 		PRINT 'Registro de Cliente actualizado exitosamente.';
 	END
@@ -337,42 +337,41 @@ BEGIN
 END;
 GO
 	
-IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
-GO
-CREATE  PROCEDURE gestion_producto.Modificar_Proveedor
-    @id INT,
-    @nombre VARCHAR(40) = NULL,
-    @activo BIT = NULL
-AS
-BEGIN
-    -- Verificar si el proveedor existe
-    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
-    BEGIN
-        -- Validar el nombre
-        IF @nombre IS NOT NULL AND LEN(@nombre) > 40
-        BEGIN
-            PRINT 'Error: El nombre del proveedor supera el límite de 40 caracteres.';
-            RETURN;
-        END
-
-        -- Actualizar el registro
-        UPDATE gestion_producto.Proveedor
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
-
-        PRINT 'Registro de Proveedor actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró un Proveedor con el ID especificado.';
-    END
-END;
-GO
 
 -- ============================ SP MODIFICACION GESTION_PRODUCTO ============================
+IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
+	DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
+GO
+CREATE  PROCEDURE gestion_producto.Modificar_Proveedor
+	@id INT,
+	@nombre VARCHAR(40) = NULL
+AS
+BEGIN
+	-- Verificar si el proveedor existe
+	IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
+	BEGIN
+		-- Validar el nombre
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		BEGIN
+			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
+
+		-- Actualizar el registro
+		UPDATE gestion_producto.Proveedor
+		SET 
+			nombre = COALESCE(@nombre, nombre)
+		WHERE id = @id;
+		
+		PRINT 'Registro de Proveedor actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('No se encontró un Proveedor con ID %d.', 16, 1, @id);
+	END
+END;
+GO
+	
 IF OBJECT_ID('[gestion_producto].[Modificar_TipoProducto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Modificar_TipoProducto];
 GO
