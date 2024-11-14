@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# SQL Server Management Studio Solution File, Format Version 11.00
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Com5600G05", "Com5600G05\Com5600G05.ssmssqlproj", "{038B750F-E220-4BA7-BCBC-C61C9D23F550}"
+EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Testing", "Testing\Testing.ssmssqlproj", "{4A160916-DD41-4C15-872C-D9DA03B08738}"
+EndProject
+Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Importacion", "Importacion\Importacion.ssmssqlproj", "{5813A44A-ACDA-4A32-B08A-CAAA7332188B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Default|Default = Default|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{038B750F-E220-4BA7-BCBC-C61C9D23F550}.Default|Default.ActiveCfg = Default
+		{E83C4440-A084-472A-A0CC-30E344AA71C8}.Default|Default.ActiveCfg = Default
+		{4A160916-DD41-4C15-872C-D9DA03B08738}.Default|Default.ActiveCfg = Default
+		{5813A44A-ACDA-4A32-B08A-CAAA7332188B}.Default|Default.ActiveCfg = Default
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
