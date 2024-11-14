@@ -11,7 +11,7 @@ BEGIN
 	BEGIN
 		UPDATE gestion_sucursal.Empleado
 		SET activo = 0
-		WHERE id_sucursal = @id_sucursal
+		WHERE id_sucursal = @sucursalID
 
 		UPDATE gestion_sucursal.Sucursal
 		SET activo = 0 WHERE id = @sucursalID

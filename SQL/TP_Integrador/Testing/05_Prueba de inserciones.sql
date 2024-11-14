@@ -1,24 +1,34 @@
---InserciÛn de empleado--
+Ôªø--Inserci√≥n de empleado--
 USE Com5600G05
 GO
-EXEC gestion_sucursal.Insertar_Empleado 204517,'MarÌa','Maggio',45289653,'Av. Mayo 1050','27-28033514-8',
+
+--ERROR: Caso de sucursal que ya existe
+EXEC [gestion_sucursal].Insertar_Sucursal 'Ramos Mejia', 'Av. de Mayo 791, B1704 Ramos Mej√≠a, Provincia de Buenos Aires','L a V 8‚ÄØam a 8‚ÄØpm.','5555-5552'
+
+--Inserci√≥n de Turnos, Cargo y Empleados--
+EXEC gestion_sucursal.Insertar_Turno 'TN'
+
+EXEC gestion_sucursal.Insertar_Cargo 'Vendedor'
+
+EXEC gestion_sucursal.Insertar_Empleado 204517,'Mar√≠a','Maggio',45289653,'Av. Mayo 1050','27-28033514-8',
 'maria@gmail.com','maria_trabajo@empresa.com',1,1,1
 
---InserciÛn de lÌneas de productos--
+--Inserci√≥n de l√≠neas de productos--
 EXEC gestion_producto.Insertar_Tipo_Producto 'Especias'
---InserciÛn de categorÌas--
+--Inserci√≥n de categor√≠as--
 
---InserciÛn de categorÌa cuyo nombre ya existe, pero en otra lÌnea de producto (lo consideramos v·lido)
+--Inserci√≥n de categor√≠a cuyo nombre ya existe, pero en otra l√≠nea de producto (lo consideramos v√°lido)
 EXEC gestion_producto.Insertar_Categoria 'aceite_vinagre_y_sal',2
---Caso donde existe el producto pero sin lÌnea asociada, por lo que se le asigna la que va por par·metro
-EXEC gestion_producto.Insertar_Categoria 'L·cteos',3
+
+--Caso donde existe el producto pero sin l√≠nea asociada, por lo que se le asigna la que va por par√°metro
+EXEC gestion_producto.Insertar_Categoria 'L√°cteos',3
 EXEC gestion_producto.Insertar_Categoria 'Bebidas',1
 
 EXEC gestion_venta.Insertar_TipoFactura 'D'
 EXEC gestion_sucursal.Insertar_Genero 'Otro'
-EXEC gestion_producto.Insertar_Proveedor 'ProveedurÌa Delta'
+EXEC gestion_producto.Insertar_Proveedor 'Proveedur√≠a Delta'
 
---Pruebas de inserciÛn de producto, con obtenciÛn de id para posterior actualizaciÛn--
+--Pruebas de inserci√≥n de producto, con obtenci√≥n de id para posterior actualizaci√≥n--
 EXEC gestion_producto.Insertar_Producto 'Queso de cabra curado',12.50,48,25,kg,null,3
 SELECT * FROM gestion_producto.Producto
 WHERE descripcion = 'Queso de cabra curado';
