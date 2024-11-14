@@ -339,10 +339,11 @@ GO
 	
 
 -- ============================ SP MODIFICACION GESTION_PRODUCTO ============================
+	
 IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
 GO
-CREATE  PROCEDURE gestion_producto.Modificar_Proveedor
+CREATE PROCEDURE gestion_producto.Modificar_Proveedor
 	@id INT,
 	@nombre VARCHAR(40) = NULL
 AS
@@ -371,168 +372,150 @@ BEGIN
 	END
 END;
 GO
-	
+
 IF OBJECT_ID('[gestion_producto].[Modificar_TipoProducto]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Modificar_TipoProducto];
+	DROP PROCEDURE [gestion_producto].[Modificar_TipoProducto];
 GO
-CREATE  PROCEDURE gestion_producto.Modificar_TipoProducto
-    @id INT,
-    @nombre VARCHAR(40) = NULL
+CREATE PROCEDURE gestion_producto.Modificar_TipoProducto
+	@id INT,
+	@nombre VARCHAR(40) = NULL
 AS
 BEGIN
     -- Verificar si el tipo de producto existe
     IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar y actualizar nombre si se proporciona
-        IF @nombre IS NOT NULL
-        BEGIN
-            IF LEN(@nombre) <= 40
-            BEGIN
-                UPDATE gestion_producto.TipoProducto
-                SET nombre = @nombre
-                WHERE id = @id;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: El nombre excede el límite de 40 caracteres.';
-            END
-        END
+        -- Validar el nombre
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		BEGIN
+			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
+
+		UPDATE gestion_producto.TipoProducto
+		SET nombre = @nombre
+		WHERE id = @id;
 
         -- Confirmación si hubo un cambio
         PRINT 'Actualización de TipoProducto completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un TipoProducto con el ID especificado.';
+        RAISERROR('No se encontró un TipoProducto con ID %d.', 16, 1, @id);
     END
 END;
 GO
+
 IF OBJECT_ID('[gestion_producto].[Modificar_Categoria]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Modificar_Categoria];
+	DROP PROCEDURE [gestion_producto].[Modificar_Categoria];
 GO
 CREATE  PROCEDURE gestion_producto.Modificar_Categoria
-    @id INT,
-    @nombre VARCHAR(50) = NULL,
-    @id_tipoProducto INT = NULL,
-    @activo BIT = NULL
+	@id INT,
+	@nombre VARCHAR(50) = NULL,
+	@id_tipoProducto INT = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
-    -- Verificar si la categoría existe
-    IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id)
-    BEGIN
-        -- Validar el nombre
-        IF @nombre IS NOT NULL AND LEN(@nombre) > 50
-        BEGIN
-            PRINT 'Error: El nombre de la categoría supera el límite de 50 caracteres.';
-            RETURN;
-        END
+	-- Verificar si la categoría existe
+	IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id)
+	BEGIN
+		-- Validar el nombre
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		BEGIN
+			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 
-        -- Validar id_tipoProducto (referencia a TipoProducto)
-        IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
-        BEGIN
-            PRINT 'Error: El Tipo de Producto especificado no existe.';
-            RETURN;
-        END
+		-- Validar id_tipoProducto (referencia a TipoProducto)
+		IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
+		BEGIN
+			RAISERROR('El Tipo de Producto especificado no existe.', 16, 1);
+			RETURN;
+		END
 
-        -- Actualizar el registro
-        UPDATE gestion_producto.Categoria
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            id_tipoProducto = COALESCE(@id_tipoProducto, id_tipoProducto),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
+		-- Actualizar el registro
+		UPDATE gestion_producto.Categoria
+		SET 
+			nombre = COALESCE(@nombre, nombre),
+			id_tipoProducto = COALESCE(@id_tipoProducto, id_tipoProducto)
+		WHERE id = @id;
 
-        PRINT 'Registro de Categoría actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró una Categoría con el ID especificado.';
-    END
+		PRINT 'Registro de Categoría actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('No se encontró una Categoría con ID %d', 16, 1, @id);
+	END
 END;
 GO
+
 IF OBJECT_ID('[gestion_producto].[Modificar_Producto]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Modificar_Producto];
+	DROP PROCEDURE [gestion_producto].[Modificar_Producto];
 GO
 CREATE  PROCEDURE gestion_producto.Modificar_Producto
-    @id INT,
-    @descripcion VARCHAR(50) = NULL,
-    @precio DECIMAL(7,2) = NULL,
-    @id_categoria INT = NULL,
-    @precio_ref DECIMAL(7,2) = NULL,
-    @unidad_ref CHAR(3) = NULL,
-    @cant_por_unidad VARCHAR(25) = NULL,
-    @id_proveedor INT = NULL,
-    @activo BIT = NULL
+	@id INT,
+	@descripcion VARCHAR(50) = NULL,
+	@precio DECIMAL(7,2) = NULL,
+	@id_categoria INT = NULL,
+	@precio_ref DECIMAL(7,2) = NULL,
+	@unidad_ref CHAR(3) = NULL,
+	@cant_por_unidad VARCHAR(25) = NULL,
+	@id_proveedor INT = NULL
 AS
 BEGIN
-    -- Verificar si el producto existe
-    IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
-    BEGIN
-        -- Validar la descripción
-        IF @descripcion IS NOT NULL AND LEN(@descripcion) > 50
-        BEGIN
-            PRINT 'Error: La descripción supera el límite de 50 caracteres.';
-            RETURN;
-        END
+	-- Verificar si el producto existe
+	IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
+	BEGIN
+		-- Validar la descripción
+		IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ '']%', @descripcion) > 0
+		BEGIN
+			RAISERROR('La descripcion solo puede tener letras, espacios y comillas simples.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar el precio
-        IF @precio IS NOT NULL AND @precio <= 0
-        BEGIN
-            PRINT 'Error: El precio debe ser mayor a 0.';
-            RETURN;
-        END
+		-- Validar el precio
+		IF @precio IS NOT NULL AND @precio <= 0
+		BEGIN
+			RAISERROR('El precio debe ser mayor a 0.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar id_categoria (referencia a Categoria)
-        IF @id_categoria IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria)
-        BEGIN
-            PRINT 'Error: La Categoría especificada no existe.';
-            RETURN;
-        END
+		-- Validar id_categoria (referencia a Categoria)
+		IF @id_categoria IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria)
+		BEGIN
+			RAISERROR('La Categoría especificada no existe.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar id_proveedor (referencia a Proveedor)
-        IF @id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor)
-        BEGIN
-            PRINT 'Error: El Proveedor especificado no existe.';
-            RETURN;
-        END
+		-- Validar id_proveedor (referencia a Proveedor)
+		IF @id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor)
+		BEGIN
+			RAISERROR('El Proveedor especificado no existe.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar la longitud de unidad_ref
-        IF @unidad_ref IS NOT NULL AND LEN(@unidad_ref) <> 3
-        BEGIN
-            PRINT 'Error: La unidad de referencia debe tener exactamente 3 caracteres.';
-            RETURN;
-        END
+		-- Actualizar el registro
+		UPDATE gestion_producto.Producto
+		SET 
+			descripcion = COALESCE(@descripcion, descripcion),
+			precio = COALESCE(@precio, precio),
+			id_categoria = COALESCE(@id_categoria, id_categoria),
+			precio_ref = COALESCE(@precio_ref, precio_ref),
+			unidad_ref = COALESCE(@unidad_ref, unidad_ref),
+			cant_por_unidad = COALESCE(@cant_por_unidad, cant_por_unidad),
+			id_proveedor = COALESCE(@id_proveedor, id_proveedor)
+		WHERE id = @id;
 
-        -- Validar la longitud de cant_por_unidad
-        IF @cant_por_unidad IS NOT NULL AND LEN(@cant_por_unidad) > 25
-        BEGIN
-            PRINT 'Error: La cantidad por unidad supera el límite de 25 caracteres.';
-            RETURN;
-        END
-
-        -- Actualizar el registro
-        UPDATE gestion_producto.Producto
-        SET 
-            descripcion = COALESCE(@descripcion, descripcion),
-            precio = COALESCE(@precio, precio),
-            id_categoria = COALESCE(@id_categoria, id_categoria),
-            precio_ref = COALESCE(@precio_ref, precio_ref),
-            unidad_ref = COALESCE(@unidad_ref, unidad_ref),
-            cant_por_unidad = COALESCE(@cant_por_unidad, cant_por_unidad),
-            id_proveedor = COALESCE(@id_proveedor, id_proveedor),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
-
-        PRINT 'Registro de Producto actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró un Producto con el ID especificado.';
-    END
+		PRINT 'Registro de Producto actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('No se encontró un Producto con ID %d.', 16, 1, @id)
+	END
 END;
 GO
 
 -- ============================ SP MODIFICACION GESTION_VENTA ============================
+	
 IF OBJECT_ID('[gestion_venta].[Modificar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Modificar_MedioDePago];
 GO
