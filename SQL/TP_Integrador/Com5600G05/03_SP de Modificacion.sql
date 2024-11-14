@@ -113,8 +113,7 @@ BEGIN
         -- Actualizar el registro
 		UPDATE gestion_sucursal.Cargo
 		SET 
-			nombre = COALESCE(@nombre, nombre),
-			activo = COALESCE(@activo, activo)
+			nombre = COALESCE(@nombre, nombre)
 		WHERE id = @id;
 
         PRINT 'Registro de Cargo actualizado exitosamente.';
