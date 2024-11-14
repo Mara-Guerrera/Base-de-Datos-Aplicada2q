@@ -20,7 +20,7 @@ BEGIN
 	    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
 	    BEGIN
 	-- Validar la direccion
-		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @direccion) > 0
+		IF @direccion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
 		BEGIN
 			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
@@ -70,9 +70,9 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
 	BEGIN
 		-- Validar la descripción
-		IF @descripcion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @descripcion) > 0
+		IF @descripcion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ, ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RAISERROR('La descripcion solo puede contener letras, comas y espacios.', 16, 1);
 			RETURN;
 		END
 
@@ -104,7 +104,7 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
 	BEGIN
         -- Validar el nombre
-		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-Z ]%', @nombre) > 0
+		IF @nombre IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
 			RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
@@ -120,7 +120,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un Cargo con ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró un Cargo con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -157,7 +157,7 @@ BEGIN
 		-- Verificar si el nombre contiene solo letras y espacios
 		IF @nombre IS NOT NULL
 		BEGIN
-			IF PATINDEX('%[^a-zA-Z ]%', @nombre) > 0 
+			IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
 			BEGIN
 				RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
 				RETURN;
@@ -166,14 +166,14 @@ BEGIN
 
 		IF @apellido IS NOT NULL
 		BEGIN
-			IF PATINDEX('%[^a-zA-Z ]%', @apellido) > 0
+			IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 			BEGIN
 				RAISERROR('El apellido solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
 				RETURN;
 			END
 		END
 
-		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @direccion) > 0
+		IF @direccion IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
 		BEGIN
 			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
@@ -213,14 +213,14 @@ BEGIN
     END
     ELSE
     BEGIN
-        RAISERROR('Error: No se encontró un Empleado con ID %d.', 16, 1, @id);
+        RAISERROR('No se encontró un Empleado con ID %d.', 16, 1, @id);
     END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_sucursal].[Modificar_TipoCliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_TipoCliente];
 GO
-
 CREATE PROCEDURE gestion_sucursal.Modificar_TipoCliente
 	@id INT,
 	@descripcion VARCHAR(10)
@@ -229,6 +229,11 @@ BEGIN
 	-- Verificar si el tipo de cliente existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
 	BEGIN
+		IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
+		BEGIN
+			RAISERROR('La descripcion solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.TipoCliente
 		SET descripcion = @descripcion
@@ -238,7 +243,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un TipoCliente con ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró un TipoCliente con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -254,6 +259,11 @@ BEGIN
 	-- Verificar si el género existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
 	BEGIN
+		IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
+		BEGIN
+			RAISERROR('La descripcion solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.Genero
 		SET descripcion = @descripcion
@@ -263,7 +273,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un Genero con ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró un Genero con ID %d.', 16, 1, @id);
     END
 END;
 GO
