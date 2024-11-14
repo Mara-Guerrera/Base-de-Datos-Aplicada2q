@@ -13,48 +13,54 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
     @nombre VARCHAR(30) = NULL,
     @direccion VARCHAR(100) = NULL,
     @horario VARCHAR(50) = NULL,
-    @telefono CHAR(9) = NULL,
-    @activo BIT = NULL
+    @telefono CHAR(9) = NULL
 AS
 BEGIN
     -- Verificar si la sucursal existe y está activa
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
-    BEGIN
-        -- Validar el nombre
-        IF @nombre IS NOT NULL AND LEN(@nombre) > 30
-        BEGIN
-            PRINT 'Error: El nombre supera el límite de 30 caracteres.';
-            RETURN;
-        END
+	    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
+	    BEGIN
+	-- Validar la direccion
+		IF @direccion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @direccion) > 0
+		BEGIN
+			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar el teléfono
-        IF PATINDEX('[^0-9-]', @telefono) > 0
+		-- Validar el teléfono
+/*		IF PATINDEX('[^0-9-]', @telefono) > 0
 		BEGIN
 			RAISERROR('El telefono incluye carácteres no válidos.', 16, 1);
 			RETURN;
 		END
+*/
+		IF PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
+		BEGIN
+			RAISERROR('Error: El formato del teléfono no es válido. Ej: 5555-5555.', 16, 1);
+			RETURN;
+		END
 
-        -- Actualizar el registro
-        UPDATE gestion_sucursal.Sucursal
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            direccion = COALESCE(@direccion, direccion),
-            horario = COALESCE(@horario, horario),
-            telefono = COALESCE(@telefono, telefono),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
-        
-        PRINT 'Registro de Sucursal actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        RAISERROR('Error: No se encontró una Sucursal con el ID especificado.',16,1);
-    END
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.Sucursal
+		SET 
+			nombre = COALESCE(@nombre, nombre),
+			direccion = COALESCE(@direccion, direccion),
+			horario = COALESCE(@horario, horario),
+			telefono = COALESCE(@telefono, telefono)
+		WHERE id = @id;
+ 
+		PRINT 'Registro de Sucursal actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('Error: No se encontró una Sucursal con ID %d.', 16, 1, @id);
+	END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Turno];
 GO
+	
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
     @id INT,
     @descripcion VARCHAR(16) = NULL,
