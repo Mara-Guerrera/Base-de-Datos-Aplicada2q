@@ -35,7 +35,7 @@ BEGIN
 */
 		IF PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
 		BEGIN
-			RAISERROR('Error: El formato del teléfono no es válido. Ej: 5555-5555.', 16, 1);
+			RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
 			RETURN;
 		END
 
@@ -52,7 +52,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró una Sucursal con ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -86,7 +86,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un Turno con el ID %d.', 16, 1, @id);
+		RAISERROR('No se encontró un Turno con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -272,62 +272,61 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cliente];
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Cliente
-    @id INT,
-    @nombre VARCHAR(50) = NULL,
-    @apellido VARCHAR(50) = NULL,
-    @id_tipo INT = NULL,
-    @id_genero INT = NULL,
-    @activo BIT = NULL
+	@id INT,
+	@nombre VARCHAR(50) = NULL,
+	@apellido VARCHAR(50) = NULL,
+	@id_tipo INT = NULL,
+	@id_genero INT = NULL
 AS
 BEGIN
-    -- Verificar si el cliente existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id)
-    BEGIN
-        -- Validar el nombre y apellido
-        IF @nombre IS NOT NULL AND LEN(@nombre) > 50
-        BEGIN
-            PRINT 'Error: El nombre supera el límite de 50 caracteres.';
-            RETURN;
-        END
+	-- Verificar si el cliente existe
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id)
+	BEGIN
+		-- Validar el nombre y apellido
+		IF @nombre IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+		BEGIN
+			RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 
-        IF @apellido IS NOT NULL AND LEN(@apellido) > 50
-        BEGIN
-            PRINT 'Error: El apellido supera el límite de 50 caracteres.';
-            RETURN;
-        END
+		IF @apellido IS NOT NULL AND PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
+		BEGIN
+			RAISERROR('El apellido solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 
-        -- Validar id_tipo (referencia a TipoCliente)
-        IF @id_tipo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
-        BEGIN
-            PRINT 'Error: El Tipo de Cliente especificado no existe.';
-            RETURN;
-        END
+		-- Validar id_tipo (referencia a TipoCliente)
+		IF @id_tipo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
+		BEGIN
+			RAISERROR('El Tipo de Cliente especificado no existe.', 16, 1);
+			RETURN;
+		END
 
-        -- Validar id_genero (referencia a Genero)
-        IF @id_genero IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero)
-        BEGIN
-            PRINT 'Error: El Género especificado no existe.';
-            RETURN;
-        END
+		-- Validar id_genero (referencia a Genero)
+		IF @id_genero IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero)
+		BEGIN
+			RAISERROR('El Género especificado no existe.', 16, 1);
+			RETURN;
+		END
 
-        -- Actualizar el registro
-        UPDATE gestion_sucursal.Cliente
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            apellido = COALESCE(@apellido, apellido),
-            id_tipo = COALESCE(@id_tipo, id_tipo),
-            id_genero = COALESCE(@id_genero, id_genero),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.Cliente
+		SET 
+			nombre = COALESCE(@nombre, nombre),
+			apellido = COALESCE(@apellido, apellido),
+			id_tipo = COALESCE(@id_tipo, id_tipo),
+			id_genero = COALESCE(@id_genero, id_genero)
+        	WHERE id = @id;
 
-        PRINT 'Registro de Cliente actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró un Cliente con el ID especificado.';
-    END
+		PRINT 'Registro de Cliente actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('No se encontró un Cliente con el ID %d.', 16, 1, @id);
+	END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
 GO
