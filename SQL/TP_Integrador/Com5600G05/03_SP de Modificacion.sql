@@ -62,70 +62,70 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
 GO
 	
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
-    @id INT,
-    @descripcion VARCHAR(16) = NULL,
-    @activo BIT = NULL
+	@id INT,
+	@descripcion VARCHAR(16) = NULL
 AS
 BEGIN
-    -- Verificar si el turno existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
-    BEGIN
-        -- Validar la descripción
-        IF @descripcion IS NOT NULL AND LEN(@descripcion) > 16
-        BEGIN
-            PRINT 'Error: La descripción supera el límite de 16 caracteres.';
-            RETURN;
-        END
+	-- Verificar si el turno existe
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
+	BEGIN
+		-- Validar la descripción
+		IF @descripcion IS NOT NULL AND PATINDEX('%[^A-Za-z0-9, ]%', @descripcion) > 0
+		BEGIN
+			RAISERROR('La descripcion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RETURN;
+		END
 
-        -- Actualizar el registro
-        UPDATE gestion_sucursal.Turno
-        SET 
-            descripcion = COALESCE(@descripcion, descripcion),
-            activo = COALESCE(@activo, activo)
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.Turno
+		SET 
+			descripcion = COALESCE(@descripcion, descripcion)
         WHERE id = @id;
 
         PRINT 'Registro de Turno actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        RAISERROR('Error: No se encontró un Turno con el ID especificado.',16,1);
-    END
+	END
+	ELSE
+	BEGIN
+		RAISERROR('Error: No se encontró un Turno con el ID %d.', 16, 1, @id);
+	END
 END;
 GO
+
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cargo]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cargo];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Cargo
     @id INT,
-    @nombre VARCHAR(20) = NULL,
-    @activo BIT = NULL
+    @nombre VARCHAR(20) = NULL
 AS
 BEGIN
-    -- Verificar si el cargo existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
-    BEGIN
+	-- Verificar si el cargo existe
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
+	BEGIN
         -- Validar el nombre
-        IF @nombre IS NOT NULL AND LEN(@nombre) > 20
-        BEGIN
-            PRINT 'Error: El nombre del cargo supera el límite de 20 caracteres.';
-            RETURN;
-        END
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-Z ]%', @nombre) > 0
+		BEGIN
+			RAISERROR('El nombre solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
+		END
 
         -- Actualizar el registro
-        UPDATE gestion_sucursal.Cargo
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
+		UPDATE gestion_sucursal.Cargo
+		SET 
+			nombre = COALESCE(@nombre, nombre),
+			activo = COALESCE(@activo, activo)
+		WHERE id = @id;
 
         PRINT 'Registro de Cargo actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-		RAISERROR('Error: No se encontró un Cargo con el ID especificado.',16,1);
-    END
+	END
+	ELSE
+	BEGIN
+		RAISERROR('Error: No se encontró un Cargo con ID %d.', 16, 1, @id);
+	END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Empleado]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Empleado];
 GO
