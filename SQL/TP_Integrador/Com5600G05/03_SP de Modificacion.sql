@@ -178,8 +178,8 @@ BEGIN
 			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
 		END
-
-		IF @cuil IS NOT NULL AND @cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		-- @cuil NOT LIKE ('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		IF @cuil IS NOT NULL AND PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuil) = 0
 		BEGIN
 			RAISERROR('El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
 			RETURN;
