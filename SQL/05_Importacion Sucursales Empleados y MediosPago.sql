@@ -84,10 +84,7 @@ BEGIN
 	DROP TABLE #TempSucursales
 END
 GO
-DECLARE @RutaArch NVARCHAR(255);
-SET @RutaArch = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-EXEC Importar_Sucursales @RutaArch
-GO
+
 -- ============================ SP IMPORTACION EMPLEADOS ============================
 CREATE OR ALTER PROCEDURE Importar_Empleados
 @Ruta NVARCHAR(400)
@@ -132,7 +129,6 @@ BEGIN
 
 
 	EXEC sp_executesql @Dinamico;
-	SELECT * FROM #TempEmpleados
 	INSERT INTO gestion_sucursal.Turno (descripcion)
 	SELECT DISTINCT Turno
 	FROM #TempEmpleados te
@@ -190,21 +186,18 @@ BEGIN
     PRINT 'Importación y registro completados exitosamente.';
 END;
 GO
-DECLARE @RutaArch NVARCHAR(255);
-SET @RutaArch = N'C:\Users\Public\Downloads\TP_integrador_Archivos\Informacion_complementaria.xlsx'
-EXEC Importar_Empleados @RutaArch
-GO
 
 /*
 --Consultas--
 SELECT * FROM gestion_sucursal.Cargo
 SELECT * FROM gestion_sucursal.Sucursal
 SELECT * FROM gestion_sucursal.Empleado
+ORDER BY dni
 SELECT * FROM gestion_sucursal.Turno
 --Borrados--
-DELETE FROM gestion_sucursal.Sucursal
-DELETE FROM gestion_sucursal.Cargo
 DELETE FROM gestion_sucursal.Empleado
+DELETE FROM gestion_sucursal.Cargo
+DELETE FROM gestion_sucursal.Sucursal
 DELETE FROM gestion_sucursal.Turno
 --Reinicio contador id incremental--
 DBCC CHECKIDENT ('gestion_sucursal.Cargo', RESEED, 0);
@@ -212,6 +205,9 @@ DBCC CHECKIDENT ('gestion_sucursal.Turno', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Sucursal', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Empleado', RESEED, 0);
 */
+
+
+
 
 
 
