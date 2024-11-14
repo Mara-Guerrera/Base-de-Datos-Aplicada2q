@@ -213,74 +213,61 @@ BEGIN
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un Empleado con el ID especificado.';
+        RAISERROR('Error: No se encontró un Empleado con ID %d.', 16, 1, @id);
     END
 END;
 GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_TipoCliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_TipoCliente];
 GO
-CREATE  PROCEDURE gestion_sucursal.Modificar_TipoCliente
-    @id INT,
-    @descripcion VARCHAR(10)
+
+CREATE PROCEDURE gestion_sucursal.Modificar_TipoCliente
+	@id INT,
+	@descripcion VARCHAR(10)
 AS
 BEGIN
-    -- Verificar si el tipo de cliente existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
-    BEGIN
-        -- Validar la longitud de la descripción
-        IF LEN(@descripcion) <= 10
-        BEGIN
-            -- Actualizar el registro
-            UPDATE gestion_sucursal.TipoCliente
-            SET descripcion = @descripcion
-            WHERE id = @id;
-            
-            PRINT 'Registro de TipoCliente actualizado exitosamente.';
-        END
-        ELSE
-        BEGIN
-            PRINT 'Error: La descripción excede el límite de 10 caracteres.';
-        END
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró un TipoCliente con el ID especificado.';
+	-- Verificar si el tipo de cliente existe
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
+	BEGIN
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.TipoCliente
+		SET descripcion = @descripcion
+		WHERE id = @id;
+     
+		PRINT 'Registro de TipoCliente actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('Error: No se encontró un TipoCliente con ID %d.', 16, 1, @id);
     END
 END;
 GO
+
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Genero]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Genero];
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Genero
-    @id INT,
-    @descripcion VARCHAR(10)
+	@id INT,
+	@descripcion VARCHAR(10)
 AS
 BEGIN
-    -- Verificar si el género existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
-    BEGIN
-        -- Validar la longitud de la descripción
-        IF LEN(@descripcion) <= 10
-        BEGIN
-            -- Actualizar el registro
-            UPDATE gestion_sucursal.Genero
-            SET descripcion = @descripcion
-            WHERE id = @id;
-            
-            PRINT 'Registro de Genero actualizado exitosamente.';
-        END
-        ELSE
-        BEGIN
-            PRINT 'Error: La descripción excede el límite de 10 caracteres.';
-        END
-    END
-    ELSE
-    BEGIN
-        PRINT 'Error: No se encontró un Genero con el ID especificado.';
+	-- Verificar si el género existe
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
+	BEGIN
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.Genero
+		SET descripcion = @descripcion
+		WHERE id = @id;
+
+		PRINT 'Registro de Genero actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('Error: No se encontró un Genero con ID %d.', 16, 1, @id);
     END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cliente];
 GO
