@@ -552,10 +552,11 @@ BEGIN
 END;
 GO
 	
+
 IF OBJECT_ID('[gestion_venta].[Modificar_Factura]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Modificar_Factura];
+	DROP PROCEDURE [gestion_venta].[Modificar_Factura];
 GO
-CREATE  PROCEDURE gestion_venta.Modificar_Factura
+CREATE PROCEDURE gestion_venta.Modificar_Factura
     @id CHAR(11),
     @id_tipoFactura INT = NULL,
     @id_cliente INT = NULL,
@@ -564,7 +565,7 @@ CREATE  PROCEDURE gestion_venta.Modificar_Factura
     @id_medioDePago INT = NULL,
     @id_empleado INT = NULL,
     @id_sucursal INT = NULL,
-    @activo BIT = NULL
+	@activo BIT = NULL
 AS
 BEGIN
     -- Verificar si la factura existe
@@ -573,39 +574,39 @@ BEGIN
         -- Validar id_tipoFactura
         IF @id_tipoFactura IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipoFactura)
         BEGIN
-            PRINT 'Error: El Tipo de Factura especificado no existe.';
+			RAISERROR('El Tipo de Factura especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_cliente
         IF @id_cliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente)
         BEGIN
-            PRINT 'Error: El Cliente especificado no existe.';
+            RAISERROR('El Cliente especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_medioDePago
         IF @id_medioDePago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago)
         BEGIN
-            PRINT 'Error: El Medio de Pago especificado no existe.';
+            RAISERROR('El Medio de Pago especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_empleado
         IF @id_empleado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado)
         BEGIN
-            PRINT 'Error: El Empleado especificado no existe.';
+            RAISERROR('El Empleado especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_sucursal
         IF @id_sucursal IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal)
         BEGIN
-            PRINT 'Error: La Sucursal especificada no existe.';
+            RAISERROR('La Sucursal especificada no existe.', 16, 1);
             RETURN;
         END
 
-        -- Actualizar el registro
+        -- Actualizar el registro, al hacerlo se activa
         UPDATE gestion_venta.Factura
         SET 
             id_tipoFactura = COALESCE(@id_tipoFactura, id_tipoFactura),
@@ -622,21 +623,22 @@ BEGIN
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró una Factura con el ID especificado.';
+        RAISERROR('No se encontró una Factura con el ID especificado.', 16, 1);
     END
 END;
 GO
+
 IF OBJECT_ID('[gestion_venta].[Modificar_DetalleVenta]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Modificar_DetalleVenta];
+	DROP PROCEDURE [gestion_venta].[Modificar_DetalleVenta];
 GO
-CREATE  PROCEDURE gestion_venta.Modificar_DetalleVenta
-    @id INT,
-    @id_factura CHAR(11),
-    @id_producto INT = NULL,
-    @cantidad INT = NULL,
-    @subtotal DECIMAL(8,2) = NULL,
-    @precio_unitario DECIMAL(7,2) = NULL,
-    @activo BIT = NULL
+CREATE PROCEDURE gestion_venta.Modificar_DetalleVenta
+	@id INT,
+	@id_factura CHAR(11),
+	@id_producto INT = NULL,
+	@cantidad INT = NULL,
+	@subtotal DECIMAL(8,2) = NULL,
+	@precio_unitario DECIMAL(7,2) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
     -- Verificar si el detalle de venta existe
@@ -645,57 +647,57 @@ BEGIN
         -- Validar id_producto
         IF @id_producto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
         BEGIN
-            PRINT 'Error: El Producto especificado no existe.';
+            RAISERROR('El Producto especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_factura
         IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura)
         BEGIN
-            PRINT 'Error: La Factura especificada no existe.';
+            RAISERROR('La Factura especificada no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar cantidad
         IF @cantidad IS NOT NULL AND @cantidad <= 0
         BEGIN
-            PRINT 'Error: La cantidad debe ser mayor a 0.';
+            RAISERROR('La cantidad debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
         -- Validar subtotal
         IF @subtotal IS NOT NULL AND @subtotal <= 0
         BEGIN
-            PRINT 'Error: El subtotal debe ser mayor a 0.';
+            RAISERROR('El subtotal debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
         -- Validar precio unitario
         IF @precio_unitario IS NOT NULL AND @precio_unitario <= 0
         BEGIN
-            PRINT 'Error: El precio unitario debe ser mayor a 0.';
+            RAISERROR('El precio unitario debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
-        -- Actualizar el registro
+        -- Actualizar el registro, al hacerlo se activa
         UPDATE gestion_venta.DetalleVenta
         SET 
             id_producto = COALESCE(@id_producto, id_producto),
             cantidad = COALESCE(@cantidad, cantidad),
             subtotal = COALESCE(@subtotal, subtotal),
             precio_unitario = COALESCE(@precio_unitario, precio_unitario),
-            activo = COALESCE(@activo, activo)
+		activo = COALESCE(@activo, activo)
         WHERE id = @id AND id_factura = @id_factura;
 
         PRINT 'Registro de Detalle de Venta actualizado exitosamente.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un Detalle de Venta con el ID y Factura especificados.';
+        RAISERROR('No se encontró un Detalle de Venta con el ID y Factura especificados.', 16, 1);
     END
 END;
 GO
-
+	
 CREATE PROCEDURE gestion_producto.Obtener_Id_Producto
     @nombreProducto VARCHAR(100),
     @id INT OUTPUT
