@@ -1,4 +1,4 @@
-﻿USE Com5600G05
+USE Com5600G05
 GO
 
 -- ERROR: Caso de sucursal que ya existe
@@ -95,12 +95,32 @@ EXEC gestion_venta.Modificar_MedioDePago 1, 'Tarjeta Crédito'
 --Modificación de Cliente
 EXEC gestion_venta.Modificar_TipoFactura 2, 'F'
 EXEC gestion_venta.Modificar_TipoFactura 2, 'B'
+EXEC gestion_sucursal.Insertar_Genero 'Female'
+EXEC gestion_sucursal.Insertar_Genero 'Male'
+EXEC gestion_sucursal.Insertar_TipoCliente 'Normal'
+EXEC gestion_sucursal.Insertar_TipoCliente 'Member'
+
+INSERT INTO gestion_sucursal.Cliente(nombre, apellido, id_tipo, id_genero, activo)
+VALUES
+('Juan', 'Pérez', 1, 2, 1),
+('Ana', 'González', 2, 3, 1),
+('Carlos', 'Martínez', 1, 2, 1),
+('Laura', 'López', 2, 3, 1),
+('Pedro', 'Rodríguez', 1, 2, 1),
+('María', 'Fernández', 2, 3, 1),
+('Luis', 'Sánchez', 1, 2, 1),
+('Carmen', 'Ramírez', 2, 3, 1),
+('José', 'Gómez', 1, 2, 1),
+('Elena', 'Vázquez', 2, 3, 1);
+
 --Consultas comentadas para verificaciones--
 /*SELECT * FROM gestion_sucursal.Cargo
 SELECT * FROM gestion_sucursal.Sucursal
 SELECT * FROM gestion_sucursal.Empleado
 SELECT * FROM gestion_venta.MedioDePago
+SELECT * FROM gestion_sucursal.TipoCliente
 SELECT * FROM gestion_producto.Categoria
+SELECT * FROM gestion_sucursal.Genero
 SELECT * FROM gestion_producto.TipoProducto
 SELECT * FROM gestion_producto.Proveedor
 SELECT * FROM gestion_producto.Producto
