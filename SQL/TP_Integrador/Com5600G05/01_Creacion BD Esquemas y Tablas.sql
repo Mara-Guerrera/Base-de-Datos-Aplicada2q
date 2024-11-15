@@ -1,15 +1,3 @@
-/*
-		BASE DE DATOS APLICADA
-		GRUPO: 05
-		COMISION: 02-5600
-		INTEGRANTES:
-			María del Pilar Bourdieu 45289653
-			Abigail Karina Peñafiel Huayta	41913506
-			Federico Pucci 41106855
-			Mara Verónica Guerrera 40538513
-
-		FECHA DE ENTREGA: 01/11/2024
-
 ENTREGA 3:
 
 Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
@@ -90,7 +78,7 @@ BEGIN
 		horario				VARCHAR(50),
 		telefono			CHAR(9),
 		activo				BIT DEFAULT 1,
-
+		cuit				CHAR(13),
 		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id)
 	)
@@ -216,6 +204,7 @@ BEGIN
 		apellido			VARCHAR(50),
 		id_tipo				INT, -- Normal / Member
 		id_genero			INT, -- Male / Female
+		dni					BIGINT UNIQUE,
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_ClienteID PRIMARY KEY (id),
@@ -366,7 +355,6 @@ BEGIN
 		id_medioDePago			INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
-		pagada				BIT DEFAULT 0, -- La necesitamos para la nota de credito
 		activo				BIT DEFAULT 1,
 		--Actualizar la primary key a un identity 
 		CONSTRAINT PK_ID PRIMARY KEY (id),
