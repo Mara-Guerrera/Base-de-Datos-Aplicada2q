@@ -7,6 +7,8 @@ Asigne los roles correspondientes para poder cumplir con este requisito.
 Por otra parte, se requiere que los datos de los empleados se encuentren encriptados, dado
 que los mismos contienen información personal.*/
 
+USE Com5600G05
+
 ALTER TABLE gestion_sucursal.Empleado
 DROP CONSTRAINT UC_Legajo_Sucursal;
 GO
