@@ -1,4 +1,4 @@
-ENTREGA 3:
+/*ENTREGA 3:
 
 Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
 las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
