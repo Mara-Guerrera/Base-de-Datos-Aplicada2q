@@ -7,6 +7,19 @@ EXEC [gestion_sucursal].Insertar_Sucursal
     'Av. de Mayo 791, B1704 Padua, Provincia de Buenos Aires',
     'L a V 8 am a 8 pm.',
     '5555-5552','20-12345681-1';
+
+SELECT * FROM gestion_sucursal.Sucursal
+GO
+
+-- Caso de sucursal que no existe: Error en el formato del telefono
+EXEC [gestion_sucursal].Insertar_Sucursal 
+    'Patricios',
+	'Avenida Caseros y Avenida Directorio',
+	'L a V 8 am a 8 pm.',
+    '0800-555-5552',
+	'20-12345555-2';
+GO
+
 --Modificaciones en sucursal--
 EXEC gestion_sucursal.Modificar_Sucursal 1,@cuit='23-45678912-4'
 EXEC gestion_sucursal.Modificar_Sucursal 2,@cuit='24-45678912-8'
