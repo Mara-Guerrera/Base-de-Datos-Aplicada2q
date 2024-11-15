@@ -417,34 +417,3 @@ BEGIN
 	)
 END
 GO
-
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'NotaDeCredito'
-    AND schema_id = SCHEMA_ID('gestion_venta')
-)
-BEGIN
-    CREATE TABLE gestion_venta.NotaDeCredito
-	(
-		id					INT IDENTITY(1,1),
-		id_producto			INT, -- descripcion, precio, cantidad
-		id_factura			CHAR(11),
-		id_cliente			INT,
-		id_empleado			INT,
-		cantidad			INT,
-		subtotal			DECIMAL(8,2),
-		precio_unitario		DECIMAL(7,2),
-		unidad_ref			CHAR(3),
-		activo				BIT DEFAULT 1,
-
-		CONSTRAINT Ck_NotaDeCreditoCantidad CHECK (cantidad > 0),
-		CONSTRAINT Ck_NotaDeCreditoSubtotal CHECK (subtotal > 0),
-		CONSTRAINT PK_NotaDeCreditoID PRIMARY KEY (id, id_factura),
-		CONSTRAINT FK_ProductoID FOREIGN KEY(id_producto) REFERENCES gestion_producto.Producto(id),
-		CONSTRAINT FK_FacturaID2 FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id_factura),
-		CONSTRAINT FK_ClienteID2 FOREIGN KEY(id_cliente) REFERENCES gestion_sucursal.Cliente(id),
-		CONSTRAINT FK_EmpleadoID2 FOREIGN KEY(id_cliente) REFERENCES gestion_sucursal.Empleado(id),
-	)
-END
-GO
