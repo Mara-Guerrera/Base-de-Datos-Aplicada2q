@@ -23,6 +23,9 @@ también debe decidir si determinadas entidades solo admitirán borrado lógico)
 Los nombres de los store procedures NO deben comenzar con “SP”.
 Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
 en la creación de objetos. NO use el esquema “dbo”.*/
+
+-- ============================ STORED PROCEDURES INSERCION ============================
+
 USE [Com5600G05]
 GO
 
