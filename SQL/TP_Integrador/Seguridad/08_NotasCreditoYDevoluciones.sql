@@ -23,63 +23,152 @@ IF NOT EXISTS (SELECT 1 FROM sys.database_role_members
 BEGIN
     EXEC sp_addrolemember 'Supervisor', 'Grupo5';
 END
+IF OBJECT_ID('[gestion_venta].[Tipo_Comprobante]', 'U') IS NOT NULL
+    DROP TABLE [gestion_venta].[Tipo_Comprobante];
+GO
+	CREATE TABLE gestion_venta.Tipo_Comprobante
+	(
+		id INT IDENTITY(1,1),
+		nombre VARCHAR(40),
+		CONSTRAINT PK_TipoComprobante PRIMARY KEY (id)
+	)
 
+GO
+--Inserciones en tabla tipo comprobante--
+/*INSERT INTO gestion_venta.Tipo_Comprobante (nombre)
+VALUES 
+    ('NOTAS DE DEBITO B'),
+    ('NOTAS DE CREDITO B'),
+    ('RECIBOS B'),
+    ('NOTAS DE VENTA AL CONTADO B');*/
 -----NOTA DE CREDITO----
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'NotaCredito'
-    AND schema_id = SCHEMA_ID('gestion_venta')
-)
-BEGIN
-    CREATE TABLE gestion_venta.NotaCredito
+
+CREATE TABLE gestion_venta.NotaCredito
     (
         id                  INT IDENTITY(1,1),
-        id_notaCredito      CHAR(11) UNIQUE,
+        id_notaCredito      CHAR(11),
         id_factura          INT,
-        id_producto         INT,
-        valor_credito       DECIMAL(7,2),
         fecha               DATE DEFAULT GETDATE(),
-        hora                TIME DEFAULT GETDATE(),
-        id_supervisor       INT,
+		id_supervisor		INT,
+		id_tipo_comprobante	INT,
+        id_sucursal			INT,
+		id_cliente			INT,
+		motivo				VARCHAR(40),
         activo              BIT DEFAULT 1,
-
         CONSTRAINT PK_NotaCreditoID PRIMARY KEY (id),
-        CONSTRAINT FK_FacturaID4 FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
-        CONSTRAINT FK_ProductoID4 FOREIGN KEY (id_producto) REFERENCES gestion_producto.Producto(id),
+        CONSTRAINT FK_FacturaID_Nota FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
+		CONSTRAINT FK_ClienteID_Nota FOREIGN KEY (id_cliente) REFERENCES gestion_sucursal.Cliente(id),
+		CONSTRAINT FK_Sucursal_Nota FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
         CONSTRAINT FK_SupervisorID FOREIGN KEY (id_supervisor) REFERENCES gestion_sucursal.Empleado(id),
-        CONSTRAINT CK_ValorCredito CHECK (valor_credito > 0)
+		CONSTRAINT FK_tipo_comprobante FOREIGN KEY (id_tipo_comprobante) REFERENCES gestion_venta.Tipo_Comprobante
     )
-END
+GO
+
+CREATE TABLE gestion_venta.Detalle_Nota
+    (
+        id_item                  INT IDENTITY(1,1),
+        id_nota					 INT,
+		id_producto				 INT,
+		cantidad				 INT,
+		valor_credito			 DECIMAL(7,2),
+		importe					 DECIMAL(8,2),
+        activo					 BIT DEFAULT 1,
+        CONSTRAINT PK_NotaDetalleID PRIMARY KEY (id_item,id_nota),
+        CONSTRAINT FK_Nota_Detalle  FOREIGN KEY (id_nota) REFERENCES gestion_venta.NotaCredito,
+		CONSTRAINT FK_Producto_Nota	FOREIGN KEY (id_producto) REFERENCES gestion_producto.Producto,
+        CONSTRAINT CK_ValorCredito CHECK (valor_credito > 0),
+		CONSTRAINT CK_ImporteCredito CHECK (importe > 0)
+    )
 GO
 
 -- Otorgar permisos al rol Supervisor
 GRANT INSERT, SELECT ON gestion_venta.NotaCredito TO Supervisor;
-
-IF OBJECT_ID('[gestion_venta].[GenerarNotaCredito]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[GenerarNotaCredito];
+GRANT INSERT, SELECT ON gestion_venta.Detalle_Nota TO Supervisor;
 GO
-CREATE PROCEDURE gestion_venta.GenerarNotaCredito
+CREATE PROCEDURE gestion_venta.Generar_Nota_Credito
     @id_factura INT,
-    @id_producto INT,
-    @valor_credito DECIMAL(7,2),
-    @id_supervisor INT
+    @id_tipo_comprobante INT,
+    @id_sucursal INT,
+    @id_cliente INT,
+	@motivo VARCHAR(40),
+	@id_supervisor INT
 AS
 BEGIN
     -- Validar que la factura esté pagada
-    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
+	IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
     BEGIN
-        RAISERROR('La factura no está pagada.', 16, 1);
+        RAISERROR('La factura no existe.', 16, 1);
         RETURN;
     END
-
+	IF NOT EXISTS (SELECT 1 FROM gestion_venta.Tipo_Comprobante WHERE id = @id_tipo_comprobante)
+	BEGIN
+		RAISERROR('Tipo de comprobante no válido.', 16, 1);
+        RETURN;
+	END
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
+	BEGIN
+		RAISERROR('La sucursal no existe.', 16, 1);
+        RETURN;
+	END
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado e 
+	INNER JOIN gestion_sucursal.Cargo c ON e.id_cargo = c.id
+	WHERE e.id = @id_supervisor
+	AND c.nombre = 'Supervisor')
+	BEGIN
+		RAISERROR('El empleado no existe o no es supervisor.', 16, 1);
+        RETURN;
+	END
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente AND activo = 1)
+	BEGIN
+		RAISERROR('ID de cliente no válido.', 16, 1);
+        RETURN;
+	END
+	DECLARE @fecha_emision DATE;
+	SET @fecha_emision = GETDATE();
     -- Insertar la nota de crédito
-    INSERT INTO gestion_venta.NotaCredito (id_factura, id_producto, valor_credito, id_supervisor)
-    VALUES (@id_factura, @id_producto, @valor_credito, @id_supervisor);
-
+    INSERT INTO gestion_venta.NotaCredito (id_factura, fecha,id_supervisor,id_tipo_comprobante,id_sucursal,id_cliente,motivo)
+    VALUES (@id_factura, @fecha_emision, @id_supervisor, @id_tipo_comprobante,@id_sucursal,@id_cliente,@motivo);
     PRINT 'Nota de crédito generada exitosamente.';
 END
 GO
+
+CREATE PROCEDURE gestion_venta.Insertar_Detalle_Nota
+@id_nota INT,
+@id_producto INT,
+@cantidad INT,
+@valor_credito DECIMAL(7,2)
+AS
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @id_nota)
+	BEGIN
+		RAISERROR('La nota de crédito no es válida',16,1);
+		RETURN;
+	END
+
+	IF NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
+	BEGIN
+		RAISERROR('El producto no existe.',16,1);
+		RETURN;
+	END
+
+	IF EXISTS (SELECT 1 FROM gestion_venta.Detalle_Nota WHERE id_nota = @id_nota AND id_producto = @id_producto)
+	BEGIN
+		RAISERROR('Ya hay un detalle con el mismo producto asociado a la nota de crédito.',16,1);
+		RETURN;
+	END
+
+	IF @cantidad <= 0 OR @valor_credito <= 0
+	BEGIN
+		RAISERROR('La cantidad o el precio no es válido.',16,1);
+		RETURN;
+	END
+	DECLARE @importe DECIMAL(8,2);
+	SET @importe = @valor_credito * @cantidad;
+
+	INSERT INTO gestion_venta.Detalle_Nota(id_nota,id_producto,cantidad,valor_credito,importe)
+    VALUES (@id_nota,@id_producto,@cantidad,@valor_credito,@importe);
+    PRINT 'Detalle de nota de crédito insertado.';
+END
 
 -------DEVOLUCION------------
 
@@ -108,7 +197,6 @@ BEGIN
         CONSTRAINT FK_FacturaIDDevolucion FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
         CONSTRAINT FK_ProductoIDDevolucion FOREIGN KEY (id_producto) REFERENCES gestion_producto.Producto(id),
         CONSTRAINT FK_SupervisorIDDevolucion FOREIGN KEY (id_supervisor) REFERENCES gestion_sucursal.Empleado(id),
-        CONSTRAINT FK_NotaCreditoIDDevolucion FOREIGN KEY (id_notaCredito) REFERENCES gestion_venta.NotaCredito(id),
         CONSTRAINT CK_CantidadDevolucion CHECK (cantidad > 0)
     )
 END
@@ -155,38 +243,4 @@ BEGIN
 
     PRINT 'Devolución registrada exitosamente.';
 END
-GO
-
--- ============================ SP BORRADO NotaDeCredito ============================
-    
-IF OBJECT_ID('[gestion_venta].[Borrar_NotaDeCredito]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Borrar_NotaDeCredito];
-GO
-CREATE PROCEDURE gestion_venta.Borrar_NotaDeCredito
-	@notaCreditoID INT
-AS
-BEGIN
-    -- Si la nota de credito existe y esta activa
-	IF EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @notaCreditoID AND activo = 1)
-	BEGIN
-		DECLARE @facturaID CHAR(11)
-
-		SELECT @facturaID = f.id_factura
-		FROM gestion_venta.Factura f 
-		INNER JOIN gestion_venta.NotaCredito nc ON f.id = nc.id_factura
-		WHERE nc.id = @notaCreditoID
-
-		UPDATE gestion_venta.NotaDeCredito
-		SET activo = 0
-		WHERE id = @notaCreditoID;
-
-		PRINT 'La nota de crédito con ID ' + CAST(@notaCreditoID AS VARCHAR) +
-			' para la factura con ID ' + ISNULL(@facturaID, 'desconocido') + ' fue dada de baja correctamente.';
-	END
-	ELSE
-	BEGIN
-		RAISERROR('La nota de crédito con ID %d no existe o ya fue dada de baja.', 16, 1, @notaCreditoID);
-	END
-END
-GO
 GO
