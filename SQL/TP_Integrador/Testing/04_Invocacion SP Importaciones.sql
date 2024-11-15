@@ -1,3 +1,5 @@
+USE Com5600G05
+GO
 
 DECLARE @RutaArchivo NVARCHAR(255);
 
