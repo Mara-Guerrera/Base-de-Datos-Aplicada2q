@@ -22,7 +22,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('La sucursal con ID %d no existe o ya fue dada de baja.', 16, 1, @sucursaID);
+		RAISERROR('La sucursal con ID %d no existe o ya fue dada de baja.', 16, 1, @sucursalID);
 	END
 END
 GO
@@ -284,11 +284,11 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE gestion_venta.Borrar_Factura
-	@facturaID		CHAR(11)
+	@facturaID	INT
 AS
 BEGIN
 	-- Si la factura existe y esta activa
-	IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @facturaID AND activo = 1)
+	IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @facturaID AND activo = 1)
 	BEGIN
 	-- Inactivo todos los detalles de venta de facturaID
 		UPDATE gestion_venta.DetalleVenta
@@ -298,7 +298,7 @@ BEGIN
 	-- Inactivo la facturaID
 		UPDATE gestion_venta.Factura
 		SET activo = 0
-		WHERE id_factura = @facturaID;
+		WHERE id = @facturaID;
 
 		PRINT 'La factura con ID ' + CAST(@facturaID AS VARCHAR) + ' fue dado de baja correctamente.';
 	END
@@ -311,23 +311,23 @@ GO
 
 CREATE OR ALTER PROCEDURE gestion_venta.Borrar_DetalleVenta
 	@detalleVentaID		INT,
-	@facturaID			CHAR(11)
+	@facturaID			INT
 AS
 BEGIN
 	-- Si existe el detalle de venta para esa factura y esta activo
 	IF EXISTS (	SELECT 1 FROM gestion_venta.DetalleVenta
-				WHERE id = @detalleVentaID AND id_factura = @facturaID AND activo = 1 )
+				WHERE id = @detalleVentaID AND id_factura = @facturaID AND activo = 1)
 	BEGIN
 		UPDATE gestion_venta.DetalleVenta
 		SET activo = 0
 		WHERE id = @detalleVentaID AND id_factura = @facturaID;
 
-		PRINT 'El detalle de venta con ID ' + CAST(@tipoFacturaID AS VARCHAR) +
+		PRINT 'El detalle de venta con ID ' + CAST(@detalleVentaID AS VARCHAR) +
 			' para la factura con ID ' + CAST(@facturaID AS VARCHAR) + ' fue dado de baja correctamente.';
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El detalle de venta con ID %d no existe o ya fue dado de baja.', 16, 1, @tipoFacturaID);
+		RAISERROR('El detalle de venta con ID %d no existe o ya fue dado de baja.', 16, 1, @detalleVentaID);
 	END
 END
 GO
@@ -337,14 +337,21 @@ CREATE OR ALTER PROCEDURE gestion_venta.Borrar_NotaDeCredito
 AS
 BEGIN
     -- Si la nota de credito existe y esta activa
-	IF EXISTS (SELECT 1 FROM gestion_venta.NotaDeCredito WHERE id = @notaCreditoID AND activo = 1)
+	IF EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @notaCreditoID AND activo = 1)
 	BEGIN
+		DECLARE @facturaID CHAR(11)
+
+		SELECT @facturaID = f.id_factura
+		FROM gestion_venta.Factura f 
+		INNER JOIN gestion_venta.NotaCredito nc ON f.id = nc.id_factura
+		WHERE nc.id = @notaCreditoID
+
 		UPDATE gestion_venta.NotaDeCredito
 		SET activo = 0
 		WHERE id = @notaCreditoID;
 
 		PRINT 'La nota de crédito con ID ' + CAST(@notaCreditoID AS VARCHAR) +
-			' para la factura con ID ' + CAST(@facturaID AS VARCHAR) + ' fue dada de baja correctamente.';
+			' para la factura con ID ' + ISNULL(@facturaID, 'desconocido') + ' fue dada de baja correctamente.';
 	END
 	ELSE
 	BEGIN
