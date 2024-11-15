@@ -6,7 +6,7 @@
 			María del Pilar Bourdieu 45289653
 			Abigail Karina Peñafiel Huayta	41913506
 			Federico Pucci 41106855
-			Mara Verónica Guerrera 40538513
+			Mara Verónica Guerrera
 
 		FECHA DE ENTREGA: 01/11/2024
 
@@ -288,12 +288,12 @@ CREATE PROCEDURE [gestion_sucursal].[Insertar_Cliente]
 	@name VARCHAR(50),
 	@surname VARCHAR(50),
 	@type INT,
-	@gender INT
+	@gender INT,
+	@dni BIGINT
 AS
 BEGIN
 	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
-				WHERE nombre = @name   AND apellido = @surname  
-				AND id_tipo = @type AND id_genero = @gender AND activo = 1 )
+				WHERE dni = @dni AND activo = 1 )
 	BEGIN
 		RAISERROR('El cliente ya existe.',16,1);
 		RETURN;
@@ -313,21 +313,18 @@ BEGIN
     END
 
 	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
-				WHERE nombre = @name   AND apellido = @surname  
-				AND id_tipo = @type AND id_genero = @gender AND activo = 0 )
+				WHERE dni = @dni AND activo = 0 )
 	BEGIN
 		UPDATE gestion_sucursal.Cliente
         SET activo = 1
-        WHERE nombre = @name   AND apellido = @surname  
-		AND id_tipo = @type AND id_genero = @gender AND activo = 0
-
+        WHERE dni = @dni
 		PRINT 'El cliente se dió de alta.';
 		RETURN;
 	END
 
 	--Inserción del nuevo cliente
-	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,activo)
-	VALUES (@name, @surname, @type, @gender,1);
+	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,dni,activo)
+	VALUES (@name, @surname, @type, @gender,@dni,1);
 	PRINT 'Cliente insertado con éxito.';
 END
 GO
@@ -467,6 +464,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 -- ============================ SP INSERCION GESTION_SUCURSAL =======================
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
@@ -475,13 +473,21 @@ CREATE PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
     @nombre VARCHAR(30),
     @direccion VARCHAR(100),
     @horario VARCHAR(50),
-    @telefono CHAR(9)
+    @telefono CHAR(9),
+    @cuit CHAR(13)
 AS
 BEGIN
     -- Verificar si el teléfono tiene el formato correcto
     IF PATINDEX('[^0-9-]', @telefono) > 0
     BEGIN
-        RAISERROR('El telefono incluye carácteres no válidos.', 16, 1);
+        RAISERROR('El telefono incluye caracteres no válidos.', 16, 1);
+        RETURN;
+    END
+
+    -- Verificar si el CUIT tiene el formato correcto (XX-XXXXXXXX-X)
+    IF PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuit) = 0
+    BEGIN
+        RAISERROR('El CUIT no tiene el formato correcto (XX-XXXXXXXX-X).', 16, 1);
         RETURN;
     END
 
@@ -496,19 +502,20 @@ BEGIN
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 0)
     BEGIN
         UPDATE gestion_sucursal.Sucursal
-        SET activo = 1, direccion = @direccion, horario = @horario, telefono = @telefono
+        SET activo = 1, direccion = @direccion, horario = @horario, telefono = @telefono, cuit = @cuit
         WHERE nombre = @nombre AND activo = 0;
         PRINT 'La sucursal se dió de alta.';
         RETURN;
     END
 
     -- Insertar nueva sucursal
-    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, activo)
-    VALUES (@nombre, @direccion, @horario, @telefono, 1);
+    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, cuit, activo)
+    VALUES (@nombre, @direccion, @horario, @telefono, @cuit, 1);
 
     PRINT 'Sucursal insertada exitosamente.';
 END
 GO
+
 /****** Object:  StoredProcedure [gestion_sucursal].[Insertar_TipoCliente]    Script Date: 13/11/2024 14:39:56 ******/
 SET ANSI_NULLS ON
 GO
@@ -596,7 +603,7 @@ GO
 
 CREATE PROCEDURE [gestion_venta].[Insertar_DetalleVenta]
     @id_producto INT,
-    @id_factura CHAR(11),
+    @id_factura INT,
     @cantidad INT
 AS
 BEGIN
@@ -605,9 +612,9 @@ BEGIN
     DECLARE @precio_unitario DECIMAL(7,2);
 
     BEGIN TRY
-		IF EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 1)
+		IF NOT EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 1)
 		BEGIN
-			RAISERROR('La factura ingresada ya existe.',16,1);
+			RAISERROR('La factura no existe.',16,1);
 			RETURN;
 		END
 
@@ -615,7 +622,7 @@ BEGIN
 		BEGIN
 			UPDATE gestion_venta.Factura
 			SET activo = 1
-			WHERE id_factura = @id_factura and activo = 0
+			WHERE id = @id_factura and activo = 0
 
 			UPDATE gestion_venta.DetalleVenta
 			SET activo = 1 
