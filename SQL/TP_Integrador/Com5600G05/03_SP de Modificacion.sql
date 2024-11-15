@@ -21,11 +21,11 @@ BEGIN
     BEGIN
         
         -- Validar el teléfono
-        IF @telefono IS NOT NULL AND PATINDEX('[^0-9-]', @telefono) > 0
-        BEGIN
-            RAISERROR('El telefono incluye caracteres no válidos.', 16, 1);
-            RETURN;
-        END
+        IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
+	BEGIN
+		RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
+		RETURN;
+	END
 
         -- Validar el CUIT
         IF @cuit IS NOT NULL AND PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuit) = 0
