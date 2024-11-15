@@ -58,7 +58,6 @@ GRANT INSERT, SELECT ON gestion_venta.NotaCredito TO Supervisor;
 
 IF OBJECT_ID('[gestion_venta].[GenerarNotaCredito]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[GenerarNotaCredito];
-
 GO
 CREATE PROCEDURE gestion_venta.GenerarNotaCredito
     @id_factura INT,
@@ -156,4 +155,38 @@ BEGIN
 
     PRINT 'Devolución registrada exitosamente.';
 END
+GO
+
+-- ============================ SP BORRADO NotaDeCredito ============================
+    
+IF OBJECT_ID('[gestion_venta].[Borrar_NotaDeCredito]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_NotaDeCredito];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_NotaDeCredito
+	@notaCreditoID INT
+AS
+BEGIN
+    -- Si la nota de credito existe y esta activa
+	IF EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @notaCreditoID AND activo = 1)
+	BEGIN
+		DECLARE @facturaID CHAR(11)
+
+		SELECT @facturaID = f.id_factura
+		FROM gestion_venta.Factura f 
+		INNER JOIN gestion_venta.NotaCredito nc ON f.id = nc.id_factura
+		WHERE nc.id = @notaCreditoID
+
+		UPDATE gestion_venta.NotaDeCredito
+		SET activo = 0
+		WHERE id = @notaCreditoID;
+
+		PRINT 'La nota de crédito con ID ' + CAST(@notaCreditoID AS VARCHAR) +
+			' para la factura con ID ' + ISNULL(@facturaID, 'desconocido') + ' fue dada de baja correctamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('La nota de crédito con ID %d no existe o ya fue dada de baja.', 16, 1, @notaCreditoID);
+	END
+END
+GO
 GO
