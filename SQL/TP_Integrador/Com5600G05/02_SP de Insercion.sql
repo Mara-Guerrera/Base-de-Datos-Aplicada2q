@@ -469,7 +469,7 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
 GO
-CREATE OR ALTER PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
 	@nombre VARCHAR(30),
 	@direccion VARCHAR(100),
 	@horario VARCHAR(50),
