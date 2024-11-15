@@ -68,7 +68,7 @@ CREATE PROCEDURE gestion_venta.GenerarNotaCredito
 AS
 BEGIN
     -- Validar que la factura esté pagada
-    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
+    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
     BEGIN
         RAISERROR('La factura no está pagada.', 16, 1);
         RETURN;
@@ -130,7 +130,7 @@ CREATE PROCEDURE gestion_venta.RegistrarDevolucion
 AS
 BEGIN
     -- Validar que la factura esté pagada
-    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
+    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
     BEGIN
         RAISERROR('La factura no está pagada. No se puede procesar la devolución.', 16, 1);
         RETURN;
