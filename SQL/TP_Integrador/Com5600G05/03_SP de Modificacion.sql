@@ -701,6 +701,32 @@ BEGIN
 END;
 GO
 	
+IF OBJECT_ID('[gestion_sucursal].[Obtener_Id_Sucursal]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Sucursal];
+GO
+CREATE PROCEDURE gestion_sucursal.Obtener_Id_Sucursal 
+	@nombreSucursal VARCHAR(30),
+	@id INT OUTPUT
+AS
+BEGIN
+	-- Inicializamos el valor del id como NULL
+    SET @id = NULL;
+
+    -- Buscar el id del producto
+    SELECT @id = id
+    FROM gestion_sucursal.Sucursal
+    WHERE nombre = @nombreSucursal;
+
+    -- Si no se encuentra el producto, el valor de @id será NULL
+    IF @id IS NULL
+    BEGIN
+        PRINT 'Producto no encontrado.';
+    END
+END
+GO
+IF OBJECT_ID('[gestion_producto].[Obtener_Id_Producto]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Obtener_Id_Producto];
+GO
 CREATE PROCEDURE gestion_producto.Obtener_Id_Producto
     @nombreProducto VARCHAR(100),
     @id INT OUTPUT
@@ -718,5 +744,48 @@ BEGIN
     IF @id IS NULL
     BEGIN
         PRINT 'Producto no encontrado.';
+    END
+END
+GO
+IF OBJECT_ID('[gestion_producto].[Obtener_Id_Categoria]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Obtener_Id_Categoria];
+GO
+CREATE PROCEDURE gestion_producto.Obtener_Id_Categoria
+    @nombreCategoria VARCHAR(50),
+    @id INT OUTPUT
+AS
+BEGIN
+
+    SET @id = NULL;
+
+    SELECT @id = id
+    FROM gestion_producto.Categoria
+    WHERE nombre = @nombreCategoria;
+
+ 
+    IF @id IS NULL
+    BEGIN
+        PRINT 'Categoría no encontrada.';
+    END
+END
+GO
+IF OBJECT_ID('[gestion_producto].[Obtener_Id_Tipo]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Obtener_Id_Tipo];
+GO
+CREATE PROCEDURE gestion_producto.Obtener_Id_Tipo
+    @nombreTipo VARCHAR(40),
+    @id INT OUTPUT
+AS
+BEGIN
+  
+    SET @id = NULL;
+
+    SELECT @id = id
+    FROM gestion_producto.TipoProducto
+    WHERE nombre = @nombreTipo;
+
+    IF @id IS NULL
+    BEGIN
+        PRINT 'Tipo de producto no encontrado.';
     END
 END
