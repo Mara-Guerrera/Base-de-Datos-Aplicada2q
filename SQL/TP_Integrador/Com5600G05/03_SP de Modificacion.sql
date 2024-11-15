@@ -7,13 +7,13 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Sucursal];
 GO
-
 CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
     @id INT,
     @nombre VARCHAR(30) = NULL,
     @direccion VARCHAR(100) = NULL,
     @horario VARCHAR(50) = NULL,
-    @telefono CHAR(9) = NULL
+    @telefono CHAR(9) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
     -- Verificar si la sucursal existe y está activa
@@ -33,9 +33,9 @@ BEGIN
 			RETURN;
 		END
 */
-		IF PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
+		IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
 		BEGIN
-			RAISERROR('El formato del teléfono no es válido: 5555-5555.', 16, 1);
+			RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
 			RETURN;
 		END
 
@@ -45,7 +45,8 @@ BEGIN
 			nombre = COALESCE(@nombre, nombre),
 			direccion = COALESCE(@direccion, direccion),
 			horario = COALESCE(@horario, horario),
-			telefono = COALESCE(@telefono, telefono)
+			telefono = COALESCE(@telefono, telefono),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
  
 		PRINT 'Registro de Sucursal actualizado exitosamente.';
@@ -60,26 +61,27 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Turno];
 GO
-
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
 	@id INT,
-	@descripcion VARCHAR(16) = NULL
+	@descripcion VARCHAR(16) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el turno existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
 	BEGIN
 		-- Validar la descripción
-		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ, ]%', @descripcion) > 0
+		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RAISERROR('La direccion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.Turno
 		SET 
-			descripcion = COALESCE(@descripcion, descripcion)
+			descripcion = COALESCE(@descripcion, descripcion),
+			activo = COALESCE(@activo, activo)
         WHERE id = @id;
 
         PRINT 'Registro de Turno actualizado exitosamente.';
@@ -94,10 +96,10 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cargo]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cargo];
 GO
-
 CREATE PROCEDURE gestion_sucursal.Modificar_Cargo
     @id INT,
-    @nombre VARCHAR(20) = NULL
+    @nombre VARCHAR(20) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el cargo existe
@@ -106,14 +108,15 @@ BEGIN
         -- Validar el nombre
 		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('El nombre solo puede contener letras y espacios.', 16, 1);
 			RETURN;
 		END
 
         -- Actualizar el registro
 		UPDATE gestion_sucursal.Cargo
 		SET 
-			nombre = COALESCE(@nombre, nombre)
+			nombre = COALESCE(@nombre, nombre),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
         PRINT 'Registro de Cargo actualizado exitosamente.';
@@ -124,7 +127,7 @@ BEGIN
 	END
 END;
 GO
-	
+
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Empleado]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Empleado];
 GO
@@ -140,37 +143,24 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Empleado
 	@email_empresa		VARCHAR(60) = NULL,
 	@id_cargo			INT = NULL,
 	@id_sucursal		INT = NULL,
-	@id_turno			INT = NULL
+	@id_turno			INT = NULL,
+	@activo				BIT = NULL
 AS
 BEGIN
-	IF @legajo IS NULL AND @nombre IS NULL AND @apellido IS NULL AND @dni IS NULL AND @direccion IS NULL AND
-		@cuil IS NULL AND @email IS NULL AND @email_empresa IS NULL
-		AND @id_cargo IS NULL AND @id_sucursal IS NULL AND @id_turno IS NULL
-    BEGIN
-		RAISERROR('No se ingresó los datos que se quieren modificar.', 16, 1);
-		RETURN;
-	END
-
-    -- Verificar si el empleado existe
+	-- Verificar si el empleado existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id AND activo = 1)
     BEGIN
 		-- Verificar si el nombre contiene solo letras y espacios
-		IF @nombre IS NOT NULL
+		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
 		BEGIN
-			IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
-			BEGIN
-				RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
-				RETURN;
-			END
+			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
 		END
 
-		IF @apellido IS NOT NULL
+		IF @apellido IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 		BEGIN
-			IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
-			BEGIN
-				RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
-				RETURN;
-			END
+			RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RETURN;
 		END
 
 		IF @direccion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
@@ -205,7 +195,8 @@ BEGIN
 			email_empresa = ISNULL(@email_empresa, email_empresa),
 			id_cargo = ISNULL(@id_cargo, id_cargo),
 			id_sucursal = ISNULL(@id_sucursal, id_sucursal),
-			id_turno = ISNULL(@id_turno, id_turno)
+			id_turno = ISNULL(@id_turno, id_turno),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id
 
         -- Mensaje de confirmación si hubo al menos un cambio
@@ -223,20 +214,23 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_TipoCliente]', 'P') IS NOT NULL
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_TipoCliente
 	@id INT,
-	@descripcion VARCHAR(10)
+	@descripcion VARCHAR(10) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el tipo de cliente existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
 	BEGIN
-		IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
+		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
 		BEGIN
 			RAISERROR('La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.TipoCliente
-		SET descripcion = @descripcion
+		SET
+			descripcion = COALESCE(@descripcion, descripcion),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
      
 		PRINT 'Registro de TipoCliente actualizado exitosamente.';
@@ -253,20 +247,23 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_Genero]', 'P') IS NOT NULL
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Genero
 	@id INT,
-	@descripcion VARCHAR(10)
+	@descripcion VARCHAR(10) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el género existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
 	BEGIN
-		IF PATINDEX('%[a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
+		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-Z ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.Genero
-		SET descripcion = @descripcion
+		SET
+			descripcion = COALESCE(@descripcion, descripcion),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
 		PRINT 'Registro de Genero actualizado exitosamente.';
@@ -277,7 +274,7 @@ BEGIN
     END
 END;
 GO
-	
+
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cliente];
 GO
@@ -286,7 +283,8 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Cliente
 	@nombre VARCHAR(50) = NULL,
 	@apellido VARCHAR(50) = NULL,
 	@id_tipo INT = NULL,
-	@id_genero INT = NULL
+	@id_genero INT = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el cliente existe
@@ -325,7 +323,8 @@ BEGIN
 			nombre = COALESCE(@nombre, nombre),
 			apellido = COALESCE(@apellido, apellido),
 			id_tipo = COALESCE(@id_tipo, id_tipo),
-			id_genero = COALESCE(@id_genero, id_genero)
+			id_genero = COALESCE(@id_genero, id_genero),
+			activo = COALESCE(@activo, activo)
         WHERE id = @id;
 
 		PRINT 'Registro de Cliente actualizado exitosamente.';
@@ -336,16 +335,15 @@ BEGIN
 	END
 END;
 GO
-	
-
 -- ============================ SP MODIFICACION GESTION_PRODUCTO ============================
-	
+
 IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
 GO
 CREATE PROCEDURE gestion_producto.Modificar_Proveedor
 	@id INT,
-	@nombre VARCHAR(40) = NULL
+	@nombre VARCHAR(40) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el proveedor existe
@@ -354,7 +352,8 @@ BEGIN
 		-- Actualizar el registro
 		UPDATE gestion_producto.Proveedor
 		SET 
-			nombre = COALESCE(@nombre, nombre)
+			nombre = COALESCE(@nombre, nombre),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 		
 		PRINT 'Registro de Proveedor actualizado exitosamente.';
@@ -371,18 +370,21 @@ IF OBJECT_ID('[gestion_producto].[Modificar_TipoProducto]', 'P') IS NOT NULL
 GO
 CREATE PROCEDURE gestion_producto.Modificar_TipoProducto
 	@id INT,
-	@nombre VARCHAR(40) = NULL
+	@nombre VARCHAR(40) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
     -- Verificar si el tipo de producto existe
     IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id and activo = 1)
     BEGIN
 		UPDATE gestion_producto.TipoProducto
-		SET nombre = @nombre
+		SET
+			nombre = COALESCE(@nombre, nombre),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
-	        -- Confirmación si hubo un cambio
-	        PRINT 'Actualización de TipoProducto completada.';
+        -- Confirmación si hubo un cambio
+        PRINT 'Actualización de TipoProducto completada.';
     END
     ELSE
     BEGIN
@@ -415,7 +417,8 @@ BEGIN
 		UPDATE gestion_producto.Categoria
 		SET 
 			nombre = COALESCE(@nombre, nombre),
-			id_tipoProducto = COALESCE(@id_tipoProducto, id_tipoProducto)
+			id_tipoProducto = COALESCE(@id_tipoProducto, id_tipoProducto),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
 		PRINT 'Registro de Categoría actualizado exitosamente.';
@@ -438,7 +441,8 @@ CREATE  PROCEDURE gestion_producto.Modificar_Producto
 	@precio_ref DECIMAL(7,2) = NULL,
 	@unidad_ref CHAR(3) = NULL,
 	@cant_por_unidad VARCHAR(25) = NULL,
-	@id_proveedor INT = NULL
+	@id_proveedor INT = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
 	-- Verificar si el producto existe
@@ -474,7 +478,8 @@ BEGIN
 			precio_ref = COALESCE(@precio_ref, precio_ref),
 			unidad_ref = COALESCE(@unidad_ref, unidad_ref),
 			cant_por_unidad = COALESCE(@cant_por_unidad, cant_por_unidad),
-			id_proveedor = COALESCE(@id_proveedor, id_proveedor)
+			id_proveedor = COALESCE(@id_proveedor, id_proveedor),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
 		PRINT 'Registro de Producto actualizado exitosamente.';
@@ -487,27 +492,23 @@ END;
 GO
 
 -- ============================ SP MODIFICACION GESTION_VENTA ============================
-	
+
 IF OBJECT_ID('[gestion_venta].[Modificar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Modificar_MedioDePago];
 GO
 CREATE PROCEDURE gestion_venta.Modificar_MedioDePago
     @id INT,
-    @descripcion VARCHAR(30) = NULL
+    @descripcion VARCHAR(30) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
-
-	IF @descripcion IS NULL 
-	BEGIN
-		RAISERROR('No ingresó los datos que se quieren modificar.', 16, 1);
-		RETURN;
-	END
-
     -- Verificar si el medio de pago existe
     IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id and activo = 1)
     BEGIN
 		UPDATE gestion_venta.MedioDePago
-		SET descripcion = @descripcion
+		SET
+			descripcion = COALESCE(@descripcion, descripcion),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
         -- Confirmación si hubo un cambio
         PRINT 'Actualización de MedioDePago completada.';
@@ -518,31 +519,34 @@ BEGIN
     END
 END;
 GO
-	
+
 IF OBJECT_ID('[gestion_venta].[Modificar_TipoFactura]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_TipoFactura];
 GO
 CREATE PROCEDURE gestion_venta.Modificar_TipoFactura
     @id INT,
-    @nombre CHAR(1) = NULL
+    @nombre CHAR(1) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
     -- Verificar si el tipo de factura existe
     IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id and activo = 1)
     BEGIN
         -- Validar y actualizar nombre si se proporciona
-	IF PATINDEX('[A-Za-z]', @nombre) = 1
+		IF PATINDEX('[A-Za-z]', @nombre) = 1
         BEGIN
             UPDATE gestion_venta.TipoFactura
-            SET nombre = @nombre
+            SET
+				nombre = COALESCE(@nombre, nombre),
+				activo = COALESCE(@activo, activo)
             WHERE id = @id;
 
 		-- Confirmación si hubo un cambio
-		PRINT 'Actualización de TipoFactura completada.';
+			PRINT 'Actualización de TipoFactura completada.';
         END
         ELSE
         BEGIN
-		RAISERROR('El nombre debe ser un solo carácter alfabético.', 16, 1);
+			RAISERROR('El nombre debe ser un solo caracter alfabético.', 16, 1);
         END
     END
     ELSE
@@ -551,7 +555,6 @@ BEGIN
     END
 END;
 GO
-	
 
 IF OBJECT_ID('[gestion_venta].[Modificar_Factura]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_Factura];
@@ -632,12 +635,12 @@ IF OBJECT_ID('[gestion_venta].[Modificar_DetalleVenta]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_DetalleVenta];
 GO
 CREATE PROCEDURE gestion_venta.Modificar_DetalleVenta
-	@id INT,
-	@id_factura CHAR(11),
-	@id_producto INT = NULL,
-	@cantidad INT = NULL,
-	@subtotal DECIMAL(8,2) = NULL,
-	@precio_unitario DECIMAL(7,2) = NULL,
+    @id INT,
+    @id_factura CHAR(11),
+    @id_producto INT = NULL,
+    @cantidad INT = NULL,
+    @subtotal DECIMAL(8,2) = NULL,
+    @precio_unitario DECIMAL(7,2) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
@@ -686,7 +689,7 @@ BEGIN
             cantidad = COALESCE(@cantidad, cantidad),
             subtotal = COALESCE(@subtotal, subtotal),
             precio_unitario = COALESCE(@precio_unitario, precio_unitario),
-		activo = COALESCE(@activo, activo)
+			activo = COALESCE(@activo, activo)
         WHERE id = @id AND id_factura = @id_factura;
 
         PRINT 'Registro de Detalle de Venta actualizado exitosamente.';
