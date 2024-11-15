@@ -136,3 +136,47 @@ WHERE
 ORDER BY 
     s.nombre, cant_prod_sucursal
 FOR XML PATH('ProductoPorSucursal'), ROOT('Resultado')
+
+--Mostrar los 5 productos más vendidos en un mes, por semana--
+DECLARE @mes INT;
+SET @mes = 3;
+
+WITH VentasPorProductoSemana AS (
+    SELECT 
+        p.descripcion,
+        DATEPART(week, f.fecha) AS semana,
+        dv.id_producto,
+        COUNT(*) OVER (PARTITION BY dv.id_producto, DATEPART(week, f.fecha)) AS cant
+    FROM 
+        gestion_venta.DetalleVenta dv
+    INNER JOIN 
+        gestion_venta.Factura f ON dv.id_factura = f.id
+    INNER JOIN 
+        gestion_producto.Producto p ON dv.id_producto = p.id
+    WHERE 
+        MONTH(f.fecha) = @mes
+),
+ProductosRankeados AS (
+    SELECT 
+        descripcion,
+        semana,
+        cant,
+        ROW_NUMBER() OVER (
+            PARTITION BY semana 
+            ORDER BY cant DESC
+        ) AS nro_fila
+    FROM 
+        VentasPorProductoSemana
+)
+SELECT 
+    descripcion,
+    semana,
+    cant,
+    nro_fila
+FROM 
+    ProductosRankeados
+WHERE 
+    nro_fila <= 5
+ORDER BY 
+    semana, nro_fila
+FOR XML PATH('Producto'), ROOT('Ventas');
