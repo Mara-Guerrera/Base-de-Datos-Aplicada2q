@@ -369,7 +369,6 @@ BEGIN
 		id_medioDePago			INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
-		pagada				BIT DEFAULT 0, -- La necesitamos para la nota de credito
 		activo				BIT DEFAULT 1,
 		--Actualizar la primary key a un identity 
 		CONSTRAINT PK_ID PRIMARY KEY (id),
