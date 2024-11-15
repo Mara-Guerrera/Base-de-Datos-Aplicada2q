@@ -40,7 +40,7 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Categoria]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Categoria];
 GO
 
-CREATE  PROCEDURE [gestion_producto].[Insertar_Categoria]
+CREATE PROCEDURE [gestion_producto].[Insertar_Categoria]
     @nombre VARCHAR(50),
     @id_tipoProducto INT
 AS
@@ -95,7 +95,7 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Producto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Producto];
 GO
 
-CREATE  PROCEDURE [gestion_producto].[Insertar_Producto]
+CREATE PROCEDURE [gestion_producto].[Insertar_Producto]
     @descrip VARCHAR(50),
     @precio DECIMAL(7,2),
     @id_categoria INT = NULL,
