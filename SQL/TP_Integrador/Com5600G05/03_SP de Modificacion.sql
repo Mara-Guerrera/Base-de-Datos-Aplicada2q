@@ -351,13 +351,6 @@ BEGIN
 	-- Verificar si el proveedor existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
 	BEGIN
-		-- Validar el nombre
-		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
-		BEGIN
-			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
-			RETURN;
-		END
-
 		-- Actualizar el registro
 		UPDATE gestion_producto.Proveedor
 		SET 
@@ -384,19 +377,12 @@ BEGIN
     -- Verificar si el tipo de producto existe
     IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar el nombre
-		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
-		BEGIN
-			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
-			RETURN;
-		END
-
 		UPDATE gestion_producto.TipoProducto
 		SET nombre = @nombre
 		WHERE id = @id;
 
-        -- Confirmación si hubo un cambio
-        PRINT 'Actualización de TipoProducto completada.';
+	        -- Confirmación si hubo un cambio
+	        PRINT 'Actualización de TipoProducto completada.';
     END
     ELSE
     BEGIN
@@ -418,13 +404,6 @@ BEGIN
 	-- Verificar si la categoría existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id)
 	BEGIN
-		-- Validar el nombre
-		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
-		BEGIN
-			RAISERROR('El nombre solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
-			RETURN;
-		END
-
 		-- Validar id_tipoProducto (referencia a TipoProducto)
 		IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
 		BEGIN
@@ -465,13 +444,6 @@ BEGIN
 	-- Verificar si el producto existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
 	BEGIN
-		-- Validar la descripción
-		IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ '']%', @descripcion) > 0
-		BEGIN
-			RAISERROR('La descripcion solo puede tener letras, espacios y comillas simples.', 16, 1);
-			RETURN;
-		END
-
 		-- Validar el precio
 		IF @precio IS NOT NULL AND @precio <= 0
 		BEGIN
@@ -519,46 +491,38 @@ GO
 IF OBJECT_ID('[gestion_venta].[Modificar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Modificar_MedioDePago];
 GO
-CREATE  PROCEDURE gestion_venta.Modificar_MedioDePago
+CREATE PROCEDURE gestion_venta.Modificar_MedioDePago
     @id INT,
     @descripcion VARCHAR(30) = NULL
 AS
 BEGIN
 
-		IF  @descripcion IS NULL 
-        BEGIN
-                PRINT 'Error: No ingresó los datos que se quieren modificar.';
-				RETURN;
-		END
+	IF @descripcion IS NULL 
+	BEGIN
+		RAISERROR('No ingresó los datos que se quieren modificar.', 16, 1);
+		RETURN;
+	END
 
     -- Verificar si el medio de pago existe
     IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id and activo = 1)
     BEGIN
-        -- Validar y actualizar descripción si se proporciona
-        IF @descripcion IS NOT NULL
-        BEGIN
-            IF LEN(@descripcion) <= 30
-            BEGIN
-                UPDATE gestion_venta.MedioDePago
-                SET descripcion = @descripcion
-                WHERE id = @id;
-            END
-         
-        END
-
+		UPDATE gestion_venta.MedioDePago
+		SET descripcion = @descripcion
+		WHERE id = @id;
         -- Confirmación si hubo un cambio
         PRINT 'Actualización de MedioDePago completada.';
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un MedioDePago con el ID especificado.';
+		RAISERROR('No se encontró un MedioDePago con ID %d.', 16, 1, @id)
     END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_venta].[Modificar_TipoFactura]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Modificar_TipoFactura];
+	DROP PROCEDURE [gestion_venta].[Modificar_TipoFactura];
 GO
-CREATE  PROCEDURE gestion_venta.Modificar_TipoFactura
+CREATE PROCEDURE gestion_venta.Modificar_TipoFactura
     @id INT,
     @nombre CHAR(1) = NULL
 AS
@@ -567,29 +531,27 @@ BEGIN
     IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id and activo = 1)
     BEGIN
         -- Validar y actualizar nombre si se proporciona
-        IF @nombre IS NOT NULL
+	IF PATINDEX('[A-Za-z]', @nombre) = 1
         BEGIN
-            IF PATINDEX('[A-Za-z]', @nombre) = 1
-            BEGIN
-                UPDATE gestion_venta.TipoFactura
-                SET nombre = @nombre
-                WHERE id = @id;
-            END
-            ELSE
-            BEGIN
-                PRINT 'Error: El nombre debe ser un solo carácter alfabético.';
-            END
-        END
+            UPDATE gestion_venta.TipoFactura
+            SET nombre = @nombre
+            WHERE id = @id;
 
-        -- Confirmación si hubo un cambio
-        PRINT 'Actualización de TipoFactura completada.';
+		-- Confirmación si hubo un cambio
+		PRINT 'Actualización de TipoFactura completada.';
+        END
+        ELSE
+        BEGIN
+		RAISERROR('El nombre debe ser un solo carácter alfabético.', 16, 1);
+        END
     END
     ELSE
     BEGIN
-        PRINT 'Error: No se encontró un TipoFactura con el ID especificado.';
+		RAISERROR('No se encontró un TipoFactura con ID %d.', 16, 1, @id);
     END
 END;
 GO
+	
 IF OBJECT_ID('[gestion_venta].[Modificar_Factura]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Modificar_Factura];
 GO
