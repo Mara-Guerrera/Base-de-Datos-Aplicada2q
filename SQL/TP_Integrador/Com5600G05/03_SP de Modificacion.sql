@@ -13,48 +13,43 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
     @direccion VARCHAR(100) = NULL,
     @horario VARCHAR(50) = NULL,
     @telefono CHAR(9) = NULL,
-	@activo BIT = NULL
+    @cuit CHAR(13) = NULL
 AS
 BEGIN
     -- Verificar si la sucursal existe y está activa
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
     BEGIN
-		-- Validar la direccion
-		IF @direccion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
-		BEGIN
-			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
-			RETURN;
-		END
+        
+        -- Validar el teléfono
+        IF @telefono IS NOT NULL AND PATINDEX('[^0-9-]', @telefono) > 0
+        BEGIN
+            RAISERROR('El telefono incluye caracteres no válidos.', 16, 1);
+            RETURN;
+        END
 
-		-- Validar el teléfono
-/*		IF PATINDEX('[^0-9-]', @telefono) > 0
-		BEGIN
-			RAISERROR('El telefono incluye carácteres no válidos.', 16, 1);
-			RETURN;
-		END
-*/
-		IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
-		BEGIN
-			RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
-			RETURN;
-		END
+        -- Validar el CUIT
+        IF @cuit IS NOT NULL AND PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuit) = 0
+        BEGIN
+            RAISERROR('El CUIT no tiene el formato correcto (XX-XXXXXXXX-X).', 16, 1);
+            RETURN;
+        END
 
-		-- Actualizar el registro
-		UPDATE gestion_sucursal.Sucursal
-		SET 
-			nombre = COALESCE(@nombre, nombre),
-			direccion = COALESCE(@direccion, direccion),
-			horario = COALESCE(@horario, horario),
-			telefono = COALESCE(@telefono, telefono),
-			activo = COALESCE(@activo, activo)
-		WHERE id = @id;
+        -- Actualizar el registro
+        UPDATE gestion_sucursal.Sucursal
+        SET 
+            nombre = COALESCE(@nombre, nombre),
+            direccion = COALESCE(@direccion, direccion),
+            horario = COALESCE(@horario, horario),
+            telefono = COALESCE(@telefono, telefono),
+            cuit = COALESCE(@cuit, cuit) -- Actualizamos el CUIT si se pasa un nuevo valor
+        WHERE id = @id;
  
-		PRINT 'Registro de Sucursal actualizado exitosamente.';
-	END
-	ELSE
-	BEGIN
-		RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
-	END
+        PRINT 'Registro de Sucursal actualizado exitosamente.';
+    END
+    ELSE
+    BEGIN
+        RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
+    END
 END;
 GO
 
@@ -752,6 +747,7 @@ IF OBJECT_ID('[gestion_producto].[Obtener_Id_Categoria]', 'P') IS NOT NULL
 GO
 CREATE PROCEDURE gestion_producto.Obtener_Id_Categoria
     @nombreCategoria VARCHAR(50),
+	@id_tipoProducto INT,
     @id INT OUTPUT
 AS
 BEGIN
@@ -760,7 +756,8 @@ BEGIN
 
     SELECT @id = id
     FROM gestion_producto.Categoria
-    WHERE nombre = @nombreCategoria;
+    WHERE nombre = @nombreCategoria
+	AND id_tipoProducto = @id_tipoProducto
 
  
     IF @id IS NULL
@@ -789,3 +786,54 @@ BEGIN
         PRINT 'Tipo de producto no encontrado.';
     END
 END
+GO
+IF OBJECT_ID('[gestion_sucursal].[Obtener_Id_Cliente]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Cliente];
+GO
+CREATE PROCEDURE gestion_sucursal.Obtener_Id_Cliente
+    @dni BIGINT,
+    @id INT OUTPUT
+AS
+BEGIN
+    -- Inicializamos el valor del id como NULL
+    SET @id = NULL;
+
+    -- Buscar el id del cliente
+    SELECT @id = id
+    FROM gestion_sucursal.Cliente
+    WHERE dni = @dni;
+
+    -- Si no se encuentra el cliente, el valor de @id será NULL
+    IF @id IS NULL
+    BEGIN
+        RAISERROR('El cliente con DNI %I64d no existe.', 16, 1, @dni);
+    END
+END
+GO
+
+IF OBJECT_ID('[gestion_venta].[Obtener_Id_Factura]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Obtener_Id_Factura];
+GO
+CREATE PROCEDURE gestion_venta.Obtener_Id_Factura
+    @id_factura CHAR(11),
+    @id INT OUTPUT
+AS
+BEGIN
+    -- Inicializamos el valor del id como NULL
+    SET @id = NULL;
+
+    -- Buscar el id de la factura
+    SELECT @id = id
+    FROM gestion_venta.Factura
+    WHERE id_factura = @id_factura;
+
+    -- Si no se encuentra la factura, el valor de @id será NULL
+	IF @id IS NULL
+    BEGIN
+        RAISERROR('La factura con id %s no existe.', 16, 1, @id_factura);
+    END
+END
+GO
+
+
+
