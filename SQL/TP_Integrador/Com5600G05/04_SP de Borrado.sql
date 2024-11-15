@@ -2,8 +2,10 @@
 USE Com5600G05
 GO
 -- ============================ SP BORRADO GESTION_SUCURSAL ============================
-
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Sucursal
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Sucursal]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Sucursal];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Sucursal
 	@sucursalID INT
 AS
 BEGIN
@@ -27,7 +29,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Turno
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Turno]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Turno];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Turno
 	@turnoID INT
 AS
 BEGIN
@@ -47,7 +52,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Cargo
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Cargo]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Cargo];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Cargo
 	@cargoID INT
 AS
 BEGIN
@@ -67,7 +75,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Empleado
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Empleado]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Empleado];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Empleado
 	@empleadoID INT
 AS
 BEGIN
@@ -87,7 +98,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_TipoCliente
+IF OBJECT_ID('[gestion_sucursal].[Borrar_TipoCliente]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_TipoCliente];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_TipoCliente
 	@tipoClienteID INT
 AS
 BEGIN
@@ -107,7 +121,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Genero
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Genero]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Genero];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Genero
 	@generoID INT
 AS
 BEGIN
@@ -127,7 +144,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_sucursal.Borrar_Cliente
+IF OBJECT_ID('[gestion_sucursal].[Borrar_Cliente]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Borrar_Cliente];
+GO
+CREATE PROCEDURE gestion_sucursal.Borrar_Cliente
 	@clienteID INT
 AS
 BEGIN
@@ -148,8 +168,11 @@ END
 GO
 
 -- ============================ SP BORRADO GESTION_PRODUCTO ============================
-
-CREATE OR ALTER PROCEDURE gestion_producto.Borrar_Proveedor
+		
+IF OBJECT_ID('[gestion_producto].[Borrar_Proveedor]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Borrar_Proveedor];
+GO
+CREATE PROCEDURE gestion_producto.Borrar_Proveedor
 	@proveedorID INT
 AS
 BEGIN
@@ -169,7 +192,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_producto.Borrar_TipoProducto
+IF OBJECT_ID('[gestion_producto].[Borrar_TipoProducto]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Borrar_TipoProducto];
+GO
+CREATE PROCEDURE gestion_producto.Borrar_TipoProducto
 	@tipoProductoID INT
 AS
 BEGIN
@@ -194,8 +220,11 @@ BEGIN
 	END
 END
 GO
-
-CREATE OR ALTER PROCEDURE gestion_producto.Borrar_Categoria
+	
+IF OBJECT_ID('[gestion_producto].[Borrar_Categoria]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Borrar_Categoria];
+GO
+CREATE PROCEDURE gestion_producto.Borrar_Categoria
 	@categoriaID INT
 AS
 BEGIN
@@ -221,7 +250,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_producto.Borrar_Producto
+IF OBJECT_ID('[gestion_producto].[Borrar_Producto]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Borrar_Producto];
+GO
+CREATE PROCEDURE gestion_producto.Borrar_Producto
 	@productoID INT
 AS
 BEGIN
@@ -243,7 +275,10 @@ GO
 
 -- ============================ SP BORRADO GESTION_VENTA ============================
 
-CREATE OR ALTER PROCEDURE gestion_venta.Borrar_MedioDePago
+IF OBJECT_ID('[gestion_venta].[Borrar_MedioDePago]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_MedioDePago];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_MedioDePago
 	@medioDePagoID INT
 AS
 BEGIN
@@ -263,7 +298,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_venta.Borrar_TipoFactura
+IF OBJECT_ID('[gestion_venta].[Borrar_TipoFactura]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_TipoFactura];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_TipoFactura
 	@tipoFacturaID INT
 AS
 BEGIN
@@ -283,7 +321,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_venta.Borrar_Factura
+IF OBJECT_ID('[gestion_venta].[Borrar_Factura]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_Factura];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_Factura
 	@facturaID	INT
 AS
 BEGIN
@@ -309,7 +350,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_venta.Borrar_DetalleVenta
+IF OBJECT_ID('[gestion_venta].[Borrar_DetalleVenta]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_DetalleVenta];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_DetalleVenta
 	@detalleVentaID		INT,
 	@facturaID			INT
 AS
@@ -332,7 +376,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE gestion_venta.Borrar_NotaDeCredito
+IF OBJECT_ID('[gestion_venta].[Borrar_NotaDeCredito]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Borrar_NotaDeCredito];
+GO
+CREATE PROCEDURE gestion_venta.Borrar_NotaDeCredito
 	@notaCreditoID INT
 AS
 BEGIN
