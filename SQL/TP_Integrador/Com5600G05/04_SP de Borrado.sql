@@ -2,6 +2,7 @@
 USE Com5600G05
 GO
 -- ============================ SP BORRADO GESTION_SUCURSAL ============================
+	
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Sucursal];
 GO
