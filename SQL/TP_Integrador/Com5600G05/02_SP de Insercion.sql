@@ -75,8 +75,8 @@ BEGIN
         RETURN;
     END
     -- Insertar nueva categoría
-    INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto, activo)
-    VALUES (@nombre, @id_tipoProducto, 1);
+    INSERT INTO gestion_producto.Categoria (nombre, id_tipoProducto)
+    VALUES (@nombre, @id_tipoProducto);
 
     PRINT 'Categoría insertada exitosamente.';
 END
@@ -151,8 +151,8 @@ BEGIN
     END
 
     -- Insertar el nuevo producto
-    INSERT INTO gestion_producto.Producto (descripcion, precio, id_categoria, precio_ref, unidad_ref, cant_por_unidad, id_proveedor, activo)
-    VALUES (@descrip, @precio, @id_categoria, @precio_ref, @unidad_ref, @cant_por_unidad, @id_proveedor, 1);
+    INSERT INTO gestion_producto.Producto (descripcion, precio, id_categoria, precio_ref, unidad_ref, cant_por_unidad, id_proveedor)
+    VALUES (@descrip, @precio, @id_categoria, @precio_ref, @unidad_ref, @cant_por_unidad, @id_proveedor);
 
     PRINT 'Nuevo producto insertado con éxito.';
 END
@@ -190,8 +190,8 @@ BEGIN
     END
 
     -- Insertar nuevo proveedor
-    INSERT INTO gestion_producto.Proveedor (nombre, activo)
-    VALUES (@nombre, 1);
+    INSERT INTO gestion_producto.Proveedor (nombre)
+    VALUES (@nombre);
 
     PRINT 'Proveedor insertado exitosamente.';
 END
@@ -229,8 +229,8 @@ BEGIN
 			RETURN;
 		END
 
-		INSERT INTO gestion_producto.TipoProducto(nombre, activo)
-		VALUES(@nombre, 1);
+		INSERT INTO gestion_producto.TipoProducto(nombre)
+		VALUES(@nombre);
 		PRINT @nombre + ' fue insertado.';
 	END
 END
@@ -268,8 +268,8 @@ BEGIN
     END
 
     -- Insertar nuevo cargo
-    INSERT INTO gestion_sucursal.Cargo (nombre, activo)
-    VALUES (@nombre, 1);
+    INSERT INTO gestion_sucursal.Cargo (nombre)
+    VALUES (@nombre);
 
     PRINT 'Cargo insertado exitosamente.';
 END
@@ -323,8 +323,8 @@ BEGIN
 	END
 
 	--Inserción del nuevo cliente
-	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,dni,activo)
-	VALUES (@name, @surname, @type, @gender,@dni,1);
+	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,dni)
+	VALUES (@name, @surname, @type, @gender,@dni);
 	PRINT 'Cliente insertado con éxito.';
 END
 GO
@@ -453,8 +453,8 @@ BEGIN
     END
 
     -- Insertar nuevo género
-    INSERT INTO gestion_sucursal.Genero (descripcion, activo)
-    VALUES (@descripcion, 1);
+    INSERT INTO gestion_sucursal.Genero (descripcion)
+    VALUES (@descripcion);
 
     PRINT 'Género insertado exitosamente.';
 END
@@ -469,27 +469,20 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
 GO
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
-    @nombre VARCHAR(30),
-    @direccion VARCHAR(100),
-    @horario VARCHAR(50),
-    @telefono CHAR(9),
-    @cuit CHAR(13)
+CREATE OR ALTER PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
+	@nombre VARCHAR(30),
+	@direccion VARCHAR(100),
+	@horario VARCHAR(50),
+	@telefono CHAR(9),
+	@cuit CHAR(13)
 AS
 BEGIN
     -- Verificar si el teléfono tiene el formato correcto
-    IF PATINDEX('[^0-9-]', @telefono) > 0
-    BEGIN
-        RAISERROR('El telefono incluye caracteres no válidos.', 16, 1);
-        RETURN;
-    END
-
-    -- Verificar si el CUIT tiene el formato correcto (XX-XXXXXXXX-X)
-    IF PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuit) = 0
-    BEGIN
-        RAISERROR('El CUIT no tiene el formato correcto (XX-XXXXXXXX-X).', 16, 1);
-        RETURN;
-    END
+    IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
+	BEGIN
+		RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
+		RETURN;
+	END
 
     -- Verificar si la sucursal ya existe (por nombre)
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 1)
@@ -502,15 +495,16 @@ BEGIN
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 0)
     BEGIN
         UPDATE gestion_sucursal.Sucursal
-        SET activo = 1, direccion = @direccion, horario = @horario, telefono = @telefono, cuit = @cuit
+        SET
+			direccion = @direccion, horario = @horario, telefono = @telefono, cuit = @cuit
         WHERE nombre = @nombre AND activo = 0;
         PRINT 'La sucursal se dió de alta.';
         RETURN;
     END
 
     -- Insertar nueva sucursal
-    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, cuit, activo)
-    VALUES (@nombre, @direccion, @horario, @telefono, @cuit, 1);
+    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, cuit)
+    VALUES (@nombre, @direccion, @horario, @telefono, @cuit);
 
     PRINT 'Sucursal insertada exitosamente.';
 END
@@ -549,8 +543,8 @@ BEGIN
     END
 
     -- Insertar nuevo tipo de cliente
-    INSERT INTO gestion_sucursal.TipoCliente (descripcion, activo)
-    VALUES (@descripcion, 1);
+    INSERT INTO gestion_sucursal.TipoCliente (descripcion)
+    VALUES (@descripcion);
 
     PRINT 'Tipo de cliente insertado exitosamente.';
 END
@@ -586,8 +580,8 @@ BEGIN
     END
 
     -- Insertar nuevo turno
-    INSERT INTO gestion_sucursal.Turno (descripcion, activo)
-    VALUES (@descripcion, 1);
+    INSERT INTO gestion_sucursal.Turno (descripcion)
+    VALUES (@descripcion);
 
     PRINT 'Turno insertado exitosamente.';
 END
@@ -640,8 +634,8 @@ BEGIN
 			-- Calcular el subtotal
 			SET @subtotal_actual = @cantidad * @precio_unitario;
 			-- Insertar el detalle de la venta
-			INSERT INTO gestion_venta.DetalleVenta(id_producto, id_factura, cantidad, subtotal, precio_unitario, activo)
-			VALUES (@id_producto, @id_factura, @cantidad, @subtotal_actual, @precio_unitario, 1);
+			INSERT INTO gestion_venta.DetalleVenta(id_producto, id_factura, cantidad, subtotal, precio_unitario)
+			VALUES (@id_producto, @id_factura, @cantidad, @subtotal_actual, @precio_unitario);
 			PRINT 'Venta insertada con éxito.';
 		END
 		ELSE
@@ -702,8 +696,8 @@ BEGIN
 		END
 
         -- Insertar la nueva factura en la tabla de facturas
-        INSERT INTO gestion_venta.Factura (id_factura, id_tipoFactura, id_cliente, fecha, hora, id_medioDePago, id_empleado, id_sucursal, activo)
-        VALUES (@id_factura, @id_tipo, @id_cliente, @fecha, @hora, @id_medio, @id_empleado, @id_sucursal, 1);
+        INSERT INTO gestion_venta.Factura (id_factura, id_tipoFactura, id_cliente, fecha, hora, id_medioDePago, id_empleado, id_sucursal)
+        VALUES (@id_factura, @id_tipo, @id_cliente, @fecha, @hora, @id_medio, @id_empleado, @id_sucursal);
 		PRINT 'Factura insertada con éxito.';
     END TRY
     BEGIN CATCH
@@ -761,8 +755,8 @@ BEGIN
     END
 
     -- Insertar el nuevo medio de pago
-    INSERT INTO gestion_venta.MedioDePago (nombre, descripcion, activo)
-    VALUES (@nombre, @descripcion, 1);
+    INSERT INTO gestion_venta.MedioDePago (nombre, descripcion)
+    VALUES (@nombre, @descripcion);
 
     PRINT 'Nuevo medio de pago insertado con éxito.';
 END
@@ -814,8 +808,8 @@ BEGIN
     END
 
     -- Insertar el nuevo tipo de factura
-    INSERT INTO gestion_venta.TipoFactura (nombre, activo)
-    VALUES (@nombre, 1);
+    INSERT INTO gestion_venta.TipoFactura (nombre)
+    VALUES (@nombre);
 
     PRINT 'Nuevo tipo de factura insertado con éxito.';
 END
