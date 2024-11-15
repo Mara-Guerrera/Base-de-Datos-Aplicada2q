@@ -1,5 +1,18 @@
------NOTA DE CREDITO----
+-----ROL SUPERVISOR-----
+-- Crear un nuevo usuario de base de datos
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Supervisor')
+BEGIN
+    CREATE ROLE Supervisor;
+END
 
+CREATE LOGIN Grupo5 WITH PASSWORD = 'Grupo5';
+
+CREATE USER Grupo5 FOR LOGIN Grupo5;
+
+-- Asignar el rol Supervisor al usuario creado
+EXEC sp_addrolemember 'Supervisor', 'Grupo5';
+
+-----NOTA DE CREDITO----
 IF NOT EXISTS (
     SELECT 1
     FROM sys.tables
@@ -31,20 +44,8 @@ BEGIN
 END
 GO
 
-
--- Crear el rol Supervisor si no existe
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'Supervisor')
-BEGIN
-    CREATE ROLE Supervisor;
-END
-
 -- Otorgar permisos al rol Supervisor
 GRANT INSERT, SELECT ON gestion_venta.NotaCredito TO Supervisor;
-
--- Asignar el rol Supervisor a los empleados correspondientes
--- Ejemplo:
-EXEC sp_addrolemember 'Supervisor', 'nombre_usuario_supervisor';
-
 
 CREATE OR ALTER PROCEDURE gestion_venta.GenerarNotaCredito
     @id_factura INT,
@@ -53,23 +54,20 @@ CREATE OR ALTER PROCEDURE gestion_venta.GenerarNotaCredito
     @id_supervisor INT
 AS
 BEGIN
-    -- Validar que la factura esté pagada
+    -- Validar que la factura estÃ© pagada
     IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
     BEGIN
-        RAISERROR('La factura no está pagada.', 16, 1);
+        RAISERROR('La factura no estÃ¡ pagada.', 16, 1);
         RETURN;
     END
 
-    -- Insertar la nota de crédito
+    -- Insertar la nota de crÃ©dito
     INSERT INTO gestion_venta.NotaCredito (id_factura, id_producto, valor_credito, id_supervisor)
     VALUES (@id_factura, @id_producto, @valor_credito, @id_supervisor);
 
-    PRINT 'Nota de crédito generada exitosamente.';
+    PRINT 'Nota de crÃ©dito generada exitosamente.';
 END
 GO
-
-
-
 
 -------DEVOLUCION------------
 
@@ -91,7 +89,7 @@ BEGIN
         fecha               DATE DEFAULT GETDATE(),
         hora                TIME DEFAULT GETDATE(),
         id_supervisor       INT,
-        id_notaCredito      INT NULL, -- Puede ser NULL si no se emite nota de crédito
+        id_notaCredito      INT NULL, -- Puede ser NULL si no se emite nota de crÃ©dito
         activo              BIT DEFAULT 1,
 
         CONSTRAINT PK_DevolucionID PRIMARY KEY (id),
@@ -116,13 +114,12 @@ CREATE PROCEDURE gestion_venta.RegistrarDevolucion
     @cantidad INT,
     @motivo VARCHAR(255),
     @id_supervisor INT,
-    @emitir_notaCredito BIT = 0
 AS
 BEGIN
-    -- Validar que la factura esté pagada
+    -- Validar que la factura estÃ© pagada
     IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
     BEGIN
-        RAISERROR('La factura no está pagada. No se puede procesar la devolución.', 16, 1);
+        RAISERROR('La factura no estÃ¡ pagada. No se puede procesar la devoluciÃ³n.', 16, 1);
         RETURN;
     END
 
@@ -133,45 +130,17 @@ BEGIN
         WHERE id_factura = @id_factura AND id_producto = @id_producto
     )
     BEGIN
-        RAISERROR('El producto no está presente en la factura.', 16, 1);
+        RAISERROR('El producto no estÃ¡ presente en la factura.', 16, 1);
         RETURN;
     END
 
-    -- Insertar la devolución
+    -- Insertar la devoluciÃ³n
     DECLARE @id_devolucion INT;
     INSERT INTO gestion_venta.Devolucion (id_factura, id_producto, cantidad, motivo, id_supervisor)
     VALUES (@id_factura, @id_producto, @cantidad, @motivo, @id_supervisor);
 
     SET @id_devolucion = SCOPE_IDENTITY();
 
-    -- Emitir nota de crédito si se solicita
-    IF @emitir_notaCredito = 1
-    BEGIN
-        DECLARE @valor_credito DECIMAL(7,2);
-        SELECT @valor_credito = precio * @cantidad
-        FROM gestion_producto.Producto
-        WHERE id = @id_producto;
-
-        INSERT INTO gestion_venta.NotaCredito (id_factura, id_producto, valor_credito, id_supervisor)
-        VALUES (@id_factura, @id_producto, @valor_credito, @id_supervisor);
-
-        DECLARE @id_notaCredito INT = SCOPE_IDENTITY();
-
-        -- Actualizar la devolución con la referencia a la nota de crédito
-        UPDATE gestion_venta.Devolucion
-        SET id_notaCredito = @id_notaCredito
-        WHERE id = @id_devolucion;
-
-        PRINT 'Nota de crédito generada y asociada a la devolución.';
-    END
-
-    PRINT 'Devolución registrada exitosamente.';
+    PRINT 'DevoluciÃ³n registrada exitosamente.';
 END
 GO
-
------REVISAR ESTO-----
--- Crear un nuevo usuario de base de datos
-CREATE USER JuanPerez FOR LOGIN JuanPerezLogin;
-
--- Asignar el rol Supervisor al usuario creado
-EXEC sp_addrolemember 'Supervisor', 'JuanPerez';
