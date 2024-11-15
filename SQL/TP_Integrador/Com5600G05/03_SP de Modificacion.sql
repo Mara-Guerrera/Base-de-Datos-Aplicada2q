@@ -196,7 +196,7 @@ BEGIN
 			id_cargo = ISNULL(@id_cargo, id_cargo),
 			id_sucursal = ISNULL(@id_sucursal, id_sucursal),
 			id_turno = ISNULL(@id_turno, id_turno),
-			activo = COALESCE(@activo, activo)
+			activo = ISNULL(@activo, activo)
 		WHERE id = @id
 
         -- Mensaje de confirmación si hubo al menos un cambio
