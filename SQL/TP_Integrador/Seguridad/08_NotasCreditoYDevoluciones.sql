@@ -54,18 +54,18 @@ CREATE OR ALTER PROCEDURE gestion_venta.GenerarNotaCredito
     @id_supervisor INT
 AS
 BEGIN
-    -- Validar que la factura estÈ pagada
+    -- Validar que la factura est√© pagada
     IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
     BEGIN
-        RAISERROR('La factura no est· pagada.', 16, 1);
+        RAISERROR('La factura no est√° pagada.', 16, 1);
         RETURN;
     END
 
-    -- Insertar la nota de crÈdito
+    -- Insertar la nota de cr√©dito
     INSERT INTO gestion_venta.NotaCredito (id_factura, id_producto, valor_credito, id_supervisor)
     VALUES (@id_factura, @id_producto, @valor_credito, @id_supervisor);
 
-    PRINT 'Nota de crÈdito generada exitosamente.';
+    PRINT 'Nota de cr√©dito generada exitosamente.';
 END
 GO
 
@@ -89,7 +89,7 @@ BEGIN
         fecha               DATE DEFAULT GETDATE(),
         hora                TIME DEFAULT GETDATE(),
         id_supervisor       INT,
-        id_notaCredito      INT NULL, -- Puede ser NULL si no se emite nota de crÈdito
+        id_notaCredito      INT NULL, -- Puede ser NULL si no se emite nota de cr√©dito
         activo              BIT DEFAULT 1,
 
         CONSTRAINT PK_DevolucionID PRIMARY KEY (id),
@@ -116,10 +116,10 @@ CREATE PROCEDURE gestion_venta.RegistrarDevolucion
     @id_supervisor INT,
 AS
 BEGIN
-    -- Validar que la factura estÈ pagada
+    -- Validar que la factura est√© pagada
     IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND pagada = 1)
     BEGIN
-        RAISERROR('La factura no est· pagada. No se puede procesar la devoluciÛn.', 16, 1);
+        RAISERROR('La factura no est√° pagada. No se puede procesar la devoluci√≥n.', 16, 1);
         RETURN;
     END
 
@@ -130,17 +130,17 @@ BEGIN
         WHERE id_factura = @id_factura AND id_producto = @id_producto
     )
     BEGIN
-        RAISERROR('El producto no est· presente en la factura.', 16, 1);
+        RAISERROR('El producto no est√° presente en la factura.', 16, 1);
         RETURN;
     END
 
-    -- Insertar la devoluciÛn
+    -- Insertar la devoluci√≥n
     DECLARE @id_devolucion INT;
     INSERT INTO gestion_venta.Devolucion (id_factura, id_producto, cantidad, motivo, id_supervisor)
     VALUES (@id_factura, @id_producto, @cantidad, @motivo, @id_supervisor);
 
     SET @id_devolucion = SCOPE_IDENTITY();
 
-    PRINT 'DevoluciÛn registrada exitosamente.';
+    PRINT 'Devoluci√≥n registrada exitosamente.';
 END
 GO
