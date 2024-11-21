@@ -64,10 +64,10 @@ GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ==================
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Sucursal'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Sucursal'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
     CREATE TABLE gestion_sucursal.Sucursal
@@ -77,8 +77,9 @@ BEGIN
 		direccion			VARCHAR(150),
 		horario				VARCHAR(50),
 		telefono			CHAR(9),
-		activo				BIT DEFAULT 1,
 		cuit				CHAR(13),
+		activo				BIT DEFAULT 1,
+
 		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id)
 	)
@@ -86,10 +87,10 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Turno'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Turno'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
     CREATE TABLE gestion_sucursal.Turno
@@ -104,17 +105,17 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Cargo'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Cargo'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
-    CREATE TABLE gestion_sucursal.Cargo
+	CREATE TABLE gestion_sucursal.Cargo
 	(
 		id			INT IDENTITY(1,1),
-		nombre			VARCHAR(20),
-		activo			BIT DEFAULT 1,
+		nombre		VARCHAR(20),
+		activo		BIT DEFAULT 1,
 
 		CONSTRAINT PK_CargoID PRIMARY KEY (id)
 	)
@@ -122,23 +123,23 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Empleado'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Empleado'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
-    CREATE TABLE gestion_sucursal.Empleado
+	CREATE TABLE gestion_sucursal.Empleado
 	(
 		id					INT IDENTITY(1,1),
-		legajo				INT,
+		legajo				INT UNIQUE NOT NULL,
 		nombre				VARCHAR(30),
 		apellido			VARCHAR(30),
-		dni					CHAR(10),
+		dni					BIGINT UNIQUE,
 		direccion			VARCHAR(160),
-		cuil				CHAR(13),
-		email				VARCHAR(80),
-		email_empresa		VARCHAR(80),
+		cuil				CHAR(13) UNIQUE,
+		email				VARCHAR(80) UNIQUE,
+		email_empresa		VARCHAR(80) UNIQUE,
 		id_cargo			INT,
 		id_sucursal			INT,
 		id_turno			INT,
@@ -149,23 +150,22 @@ BEGIN
 		CONSTRAINT FK_SucursalID1 FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
 		CONSTRAINT FK_TurnoID FOREIGN KEY (id_turno) REFERENCES gestion_sucursal.Turno(id),
 		CONSTRAINT UC_Legajo_Sucursal UNIQUE (legajo, id_sucursal)  -- Restricción de unicidad por sucursal
-
 	)
 END
 GO
 	
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'TipoCliente'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'TipoCliente'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
 	CREATE TABLE gestion_sucursal.TipoCliente
 	(
-		id			INT IDENTITY(1,1),
-		descripcion		VARCHAR(10),
-		activo			BIT DEFAULT 1,
+		id					INT IDENTITY(1,1),
+		descripcion			VARCHAR(10),
+		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_TipoClienteID PRIMARY KEY (id),
 	)
@@ -173,17 +173,17 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Genero'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Genero'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
 	CREATE TABLE gestion_sucursal.Genero
 	(
-		id			INT IDENTITY(1,1),
-		descripcion		VARCHAR(10),
-		activo			BIT DEFAULT 1,
+		id					INT IDENTITY(1,1),
+		descripcion			VARCHAR(10),
+		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_GeneroID PRIMARY KEY (id)
 	)
@@ -191,15 +191,15 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Cliente'
-    AND schema_id = SCHEMA_ID('gestion_sucursal')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Cliente'
+	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
-    CREATE TABLE gestion_sucursal.Cliente
+	CREATE TABLE gestion_sucursal.Cliente
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
 		nombre				VARCHAR(50),
 		apellido			VARCHAR(50),
 		id_tipo				INT, -- Normal / Member
@@ -214,15 +214,15 @@ BEGIN
 END
 GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_PRODUCTO ==================
-	
+
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Proveedor'
-    AND schema_id = SCHEMA_ID('gestion_producto')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Proveedor'
+	AND schema_id = SCHEMA_ID('gestion_producto')
 )
 BEGIN
-    CREATE TABLE gestion_producto.Proveedor
+	CREATE TABLE gestion_producto.Proveedor
 	(
 		id			INT IDENTITY(1,1),
 		nombre		VARCHAR(100),
@@ -234,15 +234,15 @@ END
 GO
 	
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'TipoProducto'
-    AND schema_id = SCHEMA_ID('gestion_productos')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'TipoProducto'
+	AND schema_id = SCHEMA_ID('gestion_producto')
 )
 BEGIN
-    CREATE TABLE gestion_producto.TipoProducto
+	CREATE TABLE gestion_producto.TipoProducto
 	(
-		id		INT IDENTITY(1,1),
+		id			INT IDENTITY(1,1),
 		nombre		VARCHAR(40),
 		activo		BIT DEFAULT 1,
 
@@ -252,33 +252,33 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Categoria'
-    AND schema_id = SCHEMA_ID('gestion_producto')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Categoria'
+	AND schema_id = SCHEMA_ID('gestion_producto')
 )
 BEGIN
-    CREATE TABLE gestion_producto.Categoria
-    (
-        id			INT IDENTITY(1,1),
-        nombre			VARCHAR(50),
-        id_tipoProducto 	INT,
-	activo			BIT DEFAULT 1,
+	CREATE TABLE gestion_producto.Categoria
+	(
+		id					INT IDENTITY(1,1),
+		nombre				VARCHAR(50),
+		id_tipoProducto		INT,
+		activo				BIT DEFAULT 1,
 
-	CONSTRAINT PK_CategoriaID PRIMARY KEY (id),
-        CONSTRAINT FK_Categoria_TipoProducto FOREIGN KEY (id_tipoProducto) REFERENCES gestion_producto.TipoProducto(id)
-    )
+		CONSTRAINT PK_CategoriaID PRIMARY KEY (id),
+		CONSTRAINT FK_Categoria_TipoProducto FOREIGN KEY (id_tipoProducto) REFERENCES gestion_producto.TipoProducto(id)
+	)
 END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Producto'
-    AND schema_id = SCHEMA_ID('gestion_producto')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Producto'
+	AND schema_id = SCHEMA_ID('gestion_producto')
 )
 BEGIN
-    CREATE TABLE gestion_producto.Producto
+	CREATE TABLE gestion_producto.Producto
 	(
 		id					INT IDENTITY(1,1),
 		descripcion			VARCHAR(100),
@@ -287,7 +287,7 @@ BEGIN
 		precio_ref			DECIMAL(7,2),
 		unidad_ref			CHAR(3),
 		cant_por_unidad		VARCHAR(25),
-		id_proveedor		INT, -- NUEVO
+		id_proveedor		INT,
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_ProductoPrecio CHECK (precio > 0),
@@ -301,13 +301,13 @@ GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_VENTA ==================
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'MedioDePago'
-    AND schema_id = SCHEMA_ID('gestion_venta')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'MedioDePago'
+	AND schema_id = SCHEMA_ID('gestion_venta')
 )
 BEGIN
-    CREATE TABLE gestion_venta.MedioDePago
+	CREATE TABLE gestion_venta.MedioDePago
 	(
 		id				INT IDENTITY(1,1),
 		nombre			VARCHAR(30),
@@ -320,13 +320,13 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'TipoFactura'
-    AND schema_id = SCHEMA_ID('gestion_venta')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'TipoFactura'
+	AND schema_id = SCHEMA_ID('gestion_venta')
 )
 BEGIN
-    CREATE TABLE gestion_venta.TipoFactura
+	CREATE TABLE gestion_venta.TipoFactura
 	(
 		id		INT IDENTITY(1,1),
 		nombre	CHAR(1),
@@ -338,27 +338,27 @@ END
 GO
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Factura'
-    AND schema_id = SCHEMA_ID('gestion_venta')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'Factura'
+	AND schema_id = SCHEMA_ID('gestion_venta')
 )
 BEGIN
-    CREATE TABLE gestion_venta.Factura
+	CREATE TABLE gestion_venta.Factura
 	(
-		id				INT IDENTITY(1,1),
+		id					INT IDENTITY(1,1),
 		id_factura			CHAR(11) UNIQUE,
-		id_tipoFactura			INT,
+		id_tipoFactura		INT,
 		id_cliente			INT, -- tipo, genero
 		fecha				DATE,
 		hora				TIME,
-		id_medioDePago			INT, -- descripcion
+		id_medioDePago		INT, -- descripcion
 		id_empleado			INT,
 		id_sucursal			INT, -- nombre
 		activo				BIT DEFAULT 1,
-		--Actualizar la primary key a un identity 
-		CONSTRAINT PK_ID PRIMARY KEY (id),
-		CONSTRAINT Ck_Factura CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'), 
+		
+		CONSTRAINT Ck_FacturaID CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
+		CONSTRAINT PK_FacturaID PRIMARY KEY (id),
 		CONSTRAINT FK_TipoFactura FOREIGN KEY (id_tipoFactura) REFERENCES gestion_venta.TipoFactura(id),
 		CONSTRAINT FK_ClienteID FOREIGN KEY(id_cliente) REFERENCES gestion_sucursal.Cliente(id),
 		CONSTRAINT FK_MedioDePagoID FOREIGN KEY(id_medioDePago) REFERENCES gestion_venta.MedioDePago(id),
@@ -381,21 +381,21 @@ END
 GO*/
 
 IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'DetalleVenta'
-    AND schema_id = SCHEMA_ID('gestion_venta')
+	SELECT 1
+	FROM sys.tables
+	WHERE name = 'DetalleVenta'
+	AND schema_id = SCHEMA_ID('gestion_venta')
 )
 BEGIN
-    CREATE TABLE gestion_venta.DetalleVenta
+	CREATE TABLE gestion_venta.DetalleVenta
 	(
 		id					INT IDENTITY(1,1),
-		id_producto				INT, -- descripcion, precio, cantidad
-		id_factura				INT,
-		cantidad				INT,
-		subtotal				DECIMAL(8,2),
-		precio_unitario				DECIMAL(7,2),
-		activo					BIT DEFAULT 1,
+		id_producto			INT, -- descripcion, precio, cantidad
+		id_factura			INT,
+		cantidad			INT,
+		subtotal			DECIMAL(8,2),
+		precio_unitario		DECIMAL(7,2),
+		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_DetalleVentaCantidad CHECK (cantidad > 0),
 		CONSTRAINT Ck_DetalleVentaSubtotal CHECK (subtotal > 0),
