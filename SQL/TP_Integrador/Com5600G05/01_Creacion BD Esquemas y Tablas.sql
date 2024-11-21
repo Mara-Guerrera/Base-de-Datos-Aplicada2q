@@ -311,7 +311,7 @@ BEGIN
 	(
 		id				INT IDENTITY(1,1),
 		nombre			VARCHAR(30),
-		descripcion		VARCHAR(30), -- NUEVO
+		descripcion		VARCHAR(30),
 		activo			BIT DEFAULT 1,
 		
 		CONSTRAINT PK_MedioDePagoID PRIMARY KEY (id)
