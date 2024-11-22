@@ -27,18 +27,58 @@ FROM   sys.database_role_members drm
        JOIN sys.database_principals dp2
        ON drm.member_principal_id = dp2.principal_id
 WHERE  dp2.name = 'Grupo5';
+
+--Se crea porque la tabla tipo_comprobante no tenia datos
+INSERT INTO gestion_venta.tipo_comprobante (nombre)
+VALUES 
+('NC')
+
+
+--Invocación a SP de registrar devolucion--
+DECLARE @precio_producto DECIMAL(7,2)
+SELECT @precio_producto = precio
+FROM gestion_producto.Producto WHERE id = 3
+EXEC gestion_venta.RegistrarDevolucion 4,1, 1, 'A pedido de usuario',9
+
+
 --Invocación a SP de generar nota de crédito--
 DECLARE @precio_producto DECIMAL(7,2)
 SELECT @precio_producto = precio
-FROM gestion_producto.Producto WHERE id = 3419 
-EXEC gestion_venta.GenerarNotaCredito 10,3419,@precio_producto,1
+FROM gestion_producto.Producto WHERE id = 3
+EXEC gestion_venta.Generar_Nota_Credito 4,1, 1, 2, 'A pedido de usuario',9
 
+--Invocación a SP de generar detalle nota de crédito--
+DECLARE @precio_producto DECIMAL(7,2)
 SELECT @precio_producto = precio
-FROM gestion_producto.Producto WHERE id = 2713 
-EXEC gestion_venta.GenerarNotaCredito 12,2713,@precio_producto,1
+FROM gestion_producto.Producto WHERE id = 3 
+EXEC gestion_venta.Insertar_Detalle_Nota 1,10, 1, 19.00
+
+
+
+--CASO ERROR: ya existe detalle nota de credito para ese producto
+DECLARE @precio_producto DECIMAL(7,2)
+SELECT @precio_producto = precio
+FROM gestion_producto.Producto WHERE id = 3 
+EXEC gestion_venta.Insertar_Detalle_Nota 1,10, 1, 20.00
+
+--CASO ERROR: no existe nota de credito
+DECLARE @precio_producto DECIMAL(7,2)
+SELECT @precio_producto = precio
+FROM gestion_producto.Producto WHERE id = 3 
+EXEC gestion_venta.Insertar_Detalle_Nota 10000, 1, 1, 19.00
+
+
+--CASO ERROR: no es supervisor
+DECLARE @precio_producto DECIMAL(7,2)
+SELECT @precio_producto = precio
+FROM gestion_producto.Producto WHERE id = 3
+EXEC gestion_venta.Generar_Nota_Credito 4,1, 1, 2, 'A pedido de usuario',1
+
 
 
 /*
+select * from gestion_venta.Factura
 SELECT * FROM gestion_venta.DetalleVenta 
 SELECT * FROM gestion_venta.NotaCredito 
+SELECT * FROM [gestion_venta].[Detalle_Nota]
 */ 
