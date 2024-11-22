@@ -30,51 +30,7 @@ USE [Com5600G05]
 GO
 
 -- ============================ SP INSERCION GESTION_SUCURSAL ============================
-/*
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Empresa]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Empresa];
-GO
-CREATE PROCEDURE gestion_sucursal.Insertar_Empresa
-	@cuit			CHAR(13),
-	@razon_social	VARCHAR(80),
-	@telefono		VARCHAR(15)
-AS
-BEGIN
-    -- Validar el teléfono
-	IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
-	BEGIN
-		RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
-		RETURN;
-	END
-	ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
-	BEGIN
-		RAISERROR('Error: Formato de número inválido.', 16, 1);
-		RETURN;
-	END
 
-	IF @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
-	BEGIN
-		RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
-		RETURN;
-	END
-
-	-- Verificar si la sucursal está inactiva, en cuyo caso se reactiva
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empresa WHERE razon_social = @razon_social AND activo = 0)
-	BEGIN
-		UPDATE gestion_sucursal.Empresa
-		SET
-			cuit = @cuit,
-			razon_social = @razon_social,
-			telefono = @telefono
-		WHERE razon_social = @razon_social AND activo = 0;
-		PRINT 'La empresa se dió de alta.';
-		RETURN;
-	END
-END
-GO*/
-USE MASTER
-USE [Com5600G05]
-GO
 /****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Sucursal]    Script Date: 13/11/2024 14:39:56 ******/
 SET ANSI_NULLS ON
 GO
