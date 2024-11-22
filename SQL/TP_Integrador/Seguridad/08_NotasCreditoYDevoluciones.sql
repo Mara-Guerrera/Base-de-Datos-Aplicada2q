@@ -86,10 +86,10 @@ GRANT INSERT, SELECT ON gestion_venta.NotaCredito TO Supervisor;
 GRANT INSERT, SELECT ON gestion_venta.Detalle_Nota TO Supervisor;
 GO
 CREATE PROCEDURE gestion_venta.Generar_Nota_Credito
-    @id_factura INT,
-    @id_tipo_comprobante INT,
-    @id_sucursal INT,
-    @id_cliente INT,
+	@id_factura INT,
+	@id_tipo_comprobante INT,
+	@id_sucursal INT,
+	@id_cliente INT,
 	@motivo VARCHAR(40),
 	@id_supervisor INT
 AS
@@ -133,10 +133,10 @@ END
 GO
 
 CREATE PROCEDURE gestion_venta.Insertar_Detalle_Nota
-@id_nota INT,
-@id_producto INT,
-@cantidad INT,
-@valor_credito DECIMAL(7,2)
+	@id_nota INT,
+	@id_producto INT,
+	@cantidad INT,
+	@valor_credito DECIMAL(7,2)
 AS
 BEGIN
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @id_nota)
@@ -168,79 +168,5 @@ BEGIN
 	INSERT INTO gestion_venta.Detalle_Nota(id_nota,id_producto,cantidad,valor_credito,importe)
     VALUES (@id_nota,@id_producto,@cantidad,@valor_credito,@importe);
     PRINT 'Detalle de nota de crédito insertado.';
-END
-
--------DEVOLUCION------------
-
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.tables
-    WHERE name = 'Devolucion'
-    AND schema_id = SCHEMA_ID('gestion_venta')
-)
-BEGIN
-    CREATE TABLE gestion_venta.Devolucion
-    (
-        id                  INT IDENTITY(1,1),
-        id_devolucion       CHAR(11) UNIQUE,
-        id_factura          INT,
-        id_producto         INT,
-        cantidad            INT,
-        motivo              VARCHAR(255),
-        fecha               DATE DEFAULT GETDATE(),
-        hora                TIME DEFAULT GETDATE(),
-        id_supervisor       INT,
-        id_notaCredito      INT NULL, -- Puede ser NULL si no se emite nota de crédito
-        activo              BIT DEFAULT 1,
-
-        CONSTRAINT PK_DevolucionID PRIMARY KEY (id),
-        CONSTRAINT FK_FacturaIDDevolucion FOREIGN KEY (id_factura) REFERENCES gestion_venta.Factura(id),
-        CONSTRAINT FK_ProductoIDDevolucion FOREIGN KEY (id_producto) REFERENCES gestion_producto.Producto(id),
-        CONSTRAINT FK_SupervisorIDDevolucion FOREIGN KEY (id_supervisor) REFERENCES gestion_sucursal.Empleado(id),
-        CONSTRAINT CK_CantidadDevolucion CHECK (cantidad > 0)
-    )
-END
-GO
-
--- Otorgar permisos al rol Supervisor
-GRANT INSERT, SELECT, UPDATE ON gestion_venta.Devolucion TO Supervisor;
-
-IF OBJECT_ID('[gestion_venta].[RegistrarDevolucion]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[RegistrarDevolucion];
-GO
-CREATE PROCEDURE gestion_venta.RegistrarDevolucion
-    @id_factura INT,
-    @id_producto INT,
-    @cantidad INT,
-    @motivo VARCHAR(255),
-    @id_supervisor INT
-AS
-BEGIN
-    -- Validar que la factura esté pagada
-    IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
-    BEGIN
-        RAISERROR('La factura no está pagada. No se puede procesar la devolución.', 16, 1);
-        RETURN;
-    END
-
-    -- Validar que el producto existe en la factura
-    IF NOT EXISTS (
-        SELECT 1
-        FROM gestion_venta.DetalleVenta
-        WHERE id_factura = @id_factura AND id_producto = @id_producto
-    )
-    BEGIN
-        RAISERROR('El producto no está presente en la factura.', 16, 1);
-        RETURN;
-    END
-
-    -- Insertar la devolución
-    DECLARE @id_devolucion INT;
-    INSERT INTO gestion_venta.Devolucion (id_factura, id_producto, cantidad, motivo, id_supervisor)
-    VALUES (@id_factura, @id_producto, @cantidad, @motivo, @id_supervisor);
-
-    SET @id_devolucion = SCOPE_IDENTITY();
-
-    PRINT 'Devolución registrada exitosamente.';
 END
 GO
