@@ -6,7 +6,7 @@
 			María del Pilar Bourdieu 45289653
 			Abigail Karina Peñafiel Huayta	41913506
 			Federico Pucci 41106855
-			Mara Verónica Guerrera
+			Mara Verónica Guerrera 40538513
 
 		FECHA DE ENTREGA: 22/11/2024
 
