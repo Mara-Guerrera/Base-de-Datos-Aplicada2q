@@ -62,7 +62,7 @@ BEGIN
 END
 GO
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ==================
-	
+
 IF NOT EXISTS (
 	SELECT 1
 	FROM sys.tables
@@ -72,8 +72,7 @@ IF NOT EXISTS (
 BEGIN
 	CREATE TABLE gestion_sucursal.Empresa
 	(
-		id					INT IDENTITY(1,1),
-		cuit				VARCHAR(20),
+		cuit				CHAR(13),
 		razon_social		VARCHAR(80), -- nombre legal
 		nombre				VARCHAR(80), -- nombre comercial o de fantasia
 		telefono			VARCHAR(15),
@@ -89,12 +88,12 @@ BEGIN
 		CONSTRAINT Ck_EmpresaTelefono CHECK (LEN(REPLACE(telefono, '-', '')) BETWEEN 8 AND 10  -- Cuenta los dígitos sin los guiones
 		AND PATINDEX('%[^0-9-]%', telefono) = 0  -- Asegura que no haya caracteres diferentes a dígitos o guiones
 		AND PATINDEX('%[^0-9][0-9-]%', telefono) = 0),  -- Verifica que no empiece con guion
-		CONSTRAINT PK_TurnoID PRIMARY KEY (id)/*,
+		CONSTRAINT PK_EmpresaID PRIMARY KEY (cuit)/*,
 		CONSTRAINT FK_ResponsableID FOREIGN KEY (id_responsable_fiscal) REFERENCES gestion_sucursal.Empleado(id) */
 	)
 END
 GO
-	
+
 IF NOT EXISTS (
 	SELECT 1
 	FROM sys.tables
@@ -109,17 +108,16 @@ BEGIN
 		direccion			VARCHAR(150),
 		horario				VARCHAR(50),
 		telefono			VARCHAR(15),
-		id_empresa			INT,
+		id_empresa			CHAR(13),
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_SucursalTelefono CHECK (LEN(REPLACE(telefono, '-', '')) BETWEEN 8 AND 10
 		AND PATINDEX('%[^0-9-]%', telefono) = 0 AND PATINDEX('%[^0-9][0-9-]%', telefono) = 0),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id),
-		CONSTRAINT FK_EmpresaID FOREIGN KEY (id_empresa) REFERENCES gestion_sucursal.Empresa(id)
+		CONSTRAINT FK_EmpresaID FOREIGN KEY (id_empresa) REFERENCES gestion_sucursal.Empresa(cuit)
 	)
 END
 GO
-
 
 IF NOT EXISTS (
 	SELECT 1
@@ -128,9 +126,9 @@ IF NOT EXISTS (
 	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
-    CREATE TABLE gestion_sucursal.Turno
+	CREATE TABLE gestion_sucursal.Turno
 	(
-		id			INT IDENTITY(1,1),
+		id				INT IDENTITY(1,1),
 		descripcion		VARCHAR(16),
 		activo			BIT DEFAULT 1,
 
@@ -164,7 +162,7 @@ IF NOT EXISTS (
 	AND schema_id = SCHEMA_ID('gestion_sucursal')
 )
 BEGIN
-	CREATE TABLE gestion_sucursal.Empleado
+    CREATE TABLE gestion_sucursal.Empleado
 	(
 		id					INT IDENTITY(1,1),
 		legajo				INT UNIQUE NOT NULL,
@@ -180,6 +178,7 @@ BEGIN
 		id_turno			INT,
 		activo				BIT DEFAULT 1,
 
+		CONSTRAINT Ck_EmpleadoCUIL CHECK (cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
 		CONSTRAINT PK_EmpleadoID PRIMARY KEY (id),
 		CONSTRAINT FK_CargoID FOREIGN KEY (id_cargo) REFERENCES gestion_sucursal.Cargo(id),
 		CONSTRAINT FK_SucursalID1 FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
@@ -188,7 +187,7 @@ BEGIN
 	)
 END
 GO
-	
+
 IF NOT EXISTS (
 	SELECT 1
 	FROM sys.tables
@@ -199,7 +198,7 @@ BEGIN
 	CREATE TABLE gestion_sucursal.TipoCliente
 	(
 		id					INT IDENTITY(1,1),
-		descripcion			VARCHAR(10),
+		descripcion			VARCHAR(10), -- Normal / Member
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_TipoClienteID PRIMARY KEY (id)
@@ -217,7 +216,7 @@ BEGIN
 	CREATE TABLE gestion_sucursal.Genero
 	(
 		id					INT IDENTITY(1,1),
-		descripcion			VARCHAR(10),
+		descripcion			VARCHAR(10), -- Male / Female
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT PK_GeneroID PRIMARY KEY (id)
@@ -271,7 +270,7 @@ BEGIN
 	)
 END
 GO
-	
+
 IF NOT EXISTS (
 	SELECT 1
 	FROM sys.tables
@@ -336,7 +335,6 @@ BEGIN
 	)
 END
 GO
-	
 -- ================== CREACION TABLAS DE ESQUEMA GESTION_VENTA ==================
 
 IF NOT EXISTS (
@@ -394,7 +392,7 @@ BEGIN
 		id_medioDePago		INT, -- nombre
 		id_empleado			INT, -- legajo, nombre quizas
 		id_sucursal			INT, -- nombre
-		id_empresa			INT, -- CUIT, nombre quizas
+		id_empresa			CHAR(13), -- CUIT, nombre quizas
 		activo				BIT DEFAULT 1,
 		
 		CONSTRAINT Ck_FacturaID CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
@@ -404,11 +402,23 @@ BEGIN
 		CONSTRAINT FK_MedioDePagoID FOREIGN KEY(id_medioDePago) REFERENCES gestion_venta.MedioDePago(id),
 		CONSTRAINT FK_EmpleadoID FOREIGN KEY(id_empleado) REFERENCES gestion_sucursal.Empleado(id),
 		CONSTRAINT FK_SucursalID4 FOREIGN KEY(id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
-		CONSTRAINT FK_EmpresaID FOREIGN KEY(id_empresa) REFERENCES gestion_sucursal.Empresa(id)
+		CONSTRAINT FK_EmpresaID FOREIGN KEY(id_empresa) REFERENCES gestion_sucursal.Empresa(cuit)
 	)
 END
 GO
-
+/*
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE object_id = OBJECT_ID('gestion_venta.Factura')
+    AND name = 'IX_Factura_id_factura'
+)
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX IX_Factura_id_factura
+    ON gestion_venta.Factura(id_factura);
+END
+GO
+*/
 IF NOT EXISTS (
 	SELECT 1
 	FROM sys.tables
@@ -434,3 +444,4 @@ BEGIN
 	)
 END
 GO
+
