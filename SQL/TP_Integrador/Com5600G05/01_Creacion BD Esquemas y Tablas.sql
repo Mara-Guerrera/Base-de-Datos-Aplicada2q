@@ -382,8 +382,7 @@ BEGIN
 		hora				TIME,
 		id_medioDePago		INT, -- nombre
 		id_empleado			INT, -- legajo, nombre quizas
-		id_sucursal			INT, -- nombre
-		--id_empresa			INT, -- CUIT, nombre quizas
+		id_sucursal			INT, -- nombre, id_empresa -> cuit, razon_social
 		activo				BIT DEFAULT 1,
 		
 		CONSTRAINT Ck_FacturaID CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
@@ -393,7 +392,6 @@ BEGIN
 		CONSTRAINT FK_MedioDePagoID FOREIGN KEY(id_medioDePago) REFERENCES gestion_venta.MedioDePago(id),
 		CONSTRAINT FK_EmpleadoID FOREIGN KEY(id_empleado) REFERENCES gestion_sucursal.Empleado(id),
 		CONSTRAINT FK_SucursalID4 FOREIGN KEY(id_sucursal) REFERENCES gestion_sucursal.Sucursal(id)
-		--CONSTRAINT FK_EmpresaID FOREIGN KEY(id_empresa) REFERENCES gestion_sucursal.Empresa(id)
 	)
 END
 GO
