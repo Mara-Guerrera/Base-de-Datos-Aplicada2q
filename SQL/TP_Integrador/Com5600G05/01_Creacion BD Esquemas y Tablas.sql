@@ -72,24 +72,16 @@ IF NOT EXISTS (
 BEGIN
 	CREATE TABLE gestion_sucursal.Empresa
 	(
+		id					INT IDENTITY(1,1),
 		cuit				CHAR(13),
 		razon_social		VARCHAR(80), -- nombre legal
-		nombre				VARCHAR(80), -- nombre comercial o de fantasia
 		telefono			VARCHAR(15),
-/*		direccion			VARCHAR(200), -- de la sede principal
-		email				VARCHAR(200),
-		tipo				VARCHAR(15), -- Microempresa, Pequeña empresa, Gran empresa
-		condicionIVA		VARCHAR(21), -- Responsable Inscripto, Monotributista, Exento
-		regimen_impositivo	VARCHAR(15), -- Regimen General, Monotributo, Simplificado
-		id_responsable_fiscal		INT,	*/
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_EmpresaCUIT CHECK (cuit LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
-		CONSTRAINT Ck_EmpresaTelefono CHECK (LEN(REPLACE(telefono, '-', '')) BETWEEN 8 AND 10  -- Cuenta los dígitos sin los guiones
-		AND PATINDEX('%[^0-9-]%', telefono) = 0  -- Asegura que no haya caracteres diferentes a dígitos o guiones
-		AND PATINDEX('%[^0-9][0-9-]%', telefono) = 0),  -- Verifica que no empiece con guion
-		CONSTRAINT PK_EmpresaID PRIMARY KEY (cuit)/*,
-		CONSTRAINT FK_ResponsableID FOREIGN KEY (id_responsable_fiscal) REFERENCES gestion_sucursal.Empleado(id) */
+		CONSTRAINT Ck_EmpresaTelefono CHECK (
+		PATINDEX('%[^ 0-9-]%', telefono) = 0 AND (telefono LIKE '____-____' OR telefono LIKE '11 ____-____')),
+		CONSTRAINT PK_EmpresaID PRIMARY KEY (id)
 	)
 END
 GO
@@ -108,13 +100,12 @@ BEGIN
 		direccion			VARCHAR(150),
 		horario				VARCHAR(50),
 		telefono			VARCHAR(15),
-		id_empresa			CHAR(13),
+		id_empresa			INT,
 		activo				BIT DEFAULT 1,
 
-		CONSTRAINT Ck_SucursalTelefono CHECK (LEN(REPLACE(telefono, '-', '')) BETWEEN 8 AND 10
-		AND PATINDEX('%[^0-9-]%', telefono) = 0 AND PATINDEX('%[^0-9][0-9-]%', telefono) = 0),
+		CONSTRAINT Ck_SucursalTelefono CHECK (telefono LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
 		CONSTRAINT PK_SucursalID PRIMARY KEY (id),
-		CONSTRAINT FK_EmpresaID FOREIGN KEY (id_empresa) REFERENCES gestion_sucursal.Empresa(cuit)
+		CONSTRAINT FK_EmpresaID FOREIGN KEY (id_empresa) REFERENCES gestion_sucursal.Empresa(id)
 	)
 END
 GO
@@ -264,8 +255,8 @@ BEGIN
 		telefono	VARCHAR(15),
 		activo		BIT DEFAULT 1,
 
-		CONSTRAINT Ck_ProveedorTelefono CHECK (LEN(REPLACE(telefono, '-', '')) BETWEEN 8 AND 10
-		AND PATINDEX('%[^0-9-]%', telefono) = 0 AND PATINDEX('%[^0-9][0-9-]%', telefono) = 0),
+		CONSTRAINT Ck_ProveedorTelefono CHECK (
+		PATINDEX('%[^ 0-9-]%', telefono) = 0 AND (telefono LIKE '____-____' OR telefono LIKE '11 ____-____')),
 		CONSTRAINT PK_ProveedorID PRIMARY KEY (id)
 	)
 END
@@ -392,7 +383,7 @@ BEGIN
 		id_medioDePago		INT, -- nombre
 		id_empleado			INT, -- legajo, nombre quizas
 		id_sucursal			INT, -- nombre
-		id_empresa			CHAR(13), -- CUIT, nombre quizas
+		--id_empresa			INT, -- CUIT, nombre quizas
 		activo				BIT DEFAULT 1,
 		
 		CONSTRAINT Ck_FacturaID CHECK (id_factura LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'),
@@ -401,8 +392,8 @@ BEGIN
 		CONSTRAINT FK_ClienteID FOREIGN KEY(id_cliente) REFERENCES gestion_sucursal.Cliente(id),
 		CONSTRAINT FK_MedioDePagoID FOREIGN KEY(id_medioDePago) REFERENCES gestion_venta.MedioDePago(id),
 		CONSTRAINT FK_EmpleadoID FOREIGN KEY(id_empleado) REFERENCES gestion_sucursal.Empleado(id),
-		CONSTRAINT FK_SucursalID4 FOREIGN KEY(id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
-		CONSTRAINT FK_EmpresaID FOREIGN KEY(id_empresa) REFERENCES gestion_sucursal.Empresa(cuit)
+		CONSTRAINT FK_SucursalID4 FOREIGN KEY(id_sucursal) REFERENCES gestion_sucursal.Sucursal(id)
+		--CONSTRAINT FK_EmpresaID FOREIGN KEY(id_empresa) REFERENCES gestion_sucursal.Empresa(id)
 	)
 END
 GO
@@ -444,4 +435,3 @@ BEGIN
 	)
 END
 GO
-
