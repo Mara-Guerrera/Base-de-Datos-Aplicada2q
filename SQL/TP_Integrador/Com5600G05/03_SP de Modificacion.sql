@@ -1,4 +1,30 @@
--- ============================ STORE PROCEDURES MODIFICACION ============================
+/*
+		BASE DE DATOS APLICADA
+		GRUPO: 05
+		COMISION: 02-5600
+		INTEGRANTES:
+			María del Pilar Bourdieu 45289653
+			Abigail Karina Peñafiel Huayta	41913506
+			Federico Pucci 41106855
+			Mara Verónica Guerrera 40538513
+
+		FECHA DE ENTREGA: 22/11/2024
+
+ENTREGA 3:
+
+Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregaría al DBA.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deberá entregar
+un archivo .sql con el script completo de creación (debe funcionar si se lo ejecuta “tal cual” es
+entregado). Incluya comentarios para indicar qué hace cada módulo de código.
+Genere store procedures para manejar la inserción, modificado, borrado (si corresponde,
+también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con “SP”.
+Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
+en la creación de objetos. NO use el esquema “dbo”.*/
+
+-- ============================ STORED PROCEDURES MODIFICACION ============================
 USE Com5600G05
 GO
 
@@ -10,29 +36,20 @@ GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
     @id INT,
     @nombre VARCHAR(30) = NULL,
-    @direccion VARCHAR(100) = NULL,
+    @direccion VARCHAR(150) = NULL,
     @horario VARCHAR(50) = NULL,
-    @telefono CHAR(9) = NULL,
-    @cuit CHAR(13) = NULL
+    @telefono VARCHAR(15) = NULL
 AS
 BEGIN
-    -- Verificar si la sucursal existe y está activa
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
-    BEGIN
-        
-        -- Validar el teléfono
-        IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
+	-- Verificar si la sucursal existe y está activa
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
 	BEGIN
-		RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
-		RETURN;
-	END
-
-        -- Validar el CUIT
-        IF @cuit IS NOT NULL AND PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuit) = 0
-        BEGIN
-            RAISERROR('El CUIT no tiene el formato correcto (XX-XXXXXXXX-X).', 16, 1);
-            RETURN;
-        END
+		-- Validar el teléfono
+		IF @telefono IS NOT NULL AND @telefono NOT LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+		BEGIN
+			RAISERROR('Error: El telefono no tiene un formato válido: XXXX-XXXX', 16, 1);
+			RETURN;
+		END
 
         -- Actualizar el registro
         UPDATE gestion_sucursal.Sucursal
@@ -40,8 +57,7 @@ BEGIN
             nombre = COALESCE(@nombre, nombre),
             direccion = COALESCE(@direccion, direccion),
             horario = COALESCE(@horario, horario),
-            telefono = COALESCE(@telefono, telefono),
-            cuit = COALESCE(@cuit, cuit) -- Actualizamos el CUIT si se pasa un nuevo valor
+            telefono = COALESCE(@telefono, telefono)
         WHERE id = @id;
  
         PRINT 'Registro de Sucursal actualizado exitosamente.';
@@ -57,9 +73,9 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Turno];
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
-	@id INT,
-	@descripcion VARCHAR(16) = NULL,
-	@activo BIT = NULL
+	@id				INT,
+	@descripcion	VARCHAR(16) = NULL,
+	@activo			BIT = NULL
 AS
 BEGIN
 	-- Verificar si el turno existe
@@ -68,7 +84,7 @@ BEGIN
 		-- Validar la descripción
 		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La direccion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: La direccion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
@@ -83,7 +99,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Turno con el ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Turno con el ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -103,7 +119,7 @@ BEGIN
         -- Validar el nombre
 		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras y espacios.', 16, 1);
+			RAISERROR('Error: El nombre solo puede contener letras y espacios.', 16, 1);
 			RETURN;
 		END
 
@@ -118,7 +134,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Cargo con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Cargo con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -148,32 +164,33 @@ BEGIN
 		-- Verificar si el nombre contiene solo letras y espacios
 		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0 
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
 		IF @apellido IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 		BEGIN
-			RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
 		IF @direccion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ0-9, ]%', @direccion) > 0
 		BEGIN
-			RAISERROR('La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
+			RAISERROR('Error: La direccion solo puede contener letras, números, comas y espacios.', 16, 1);
 			RETURN;
 		END
-		-- @cuil NOT LIKE ('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
-		IF @cuil IS NOT NULL AND PATINDEX('[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]', @cuil) = 0
+
+		IF @cuil IS NOT NULL AND @cuil NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 		BEGIN
-			RAISERROR('El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
+			RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
 			RETURN;
 		END
 		-- Verificar si el correo electronico tiene un formato básico válido
-		IF (@email IS NOT NULL AND PATINDEX('%@%.%', @email) = 0) 
-		OR (@email_empresa IS NOT NULL AND PATINDEX('%@%.%', @email_empresa) = 0)
+		IF ( @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0) )
+		OR ( @email_empresa IS NOT NULL AND (PATINDEX('%@%.%', @email_empresa) = 0 OR CHARINDEX(' ', @email_empresa) > 0) )
 		BEGIN
-			RAISERROR('El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto).', 16, 1);
+			RAISERROR('Error: El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto)
+						o contienen espacios.', 16, 1);
 			RETURN;
 		END
 
@@ -218,7 +235,7 @@ BEGIN
 	BEGIN
 		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 		-- Actualizar el registro
@@ -232,7 +249,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un TipoCliente con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un TipoCliente con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -251,7 +268,7 @@ BEGIN
 	BEGIN
 		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-Z ]%', @descripcion) > 0
 		BEGIN
-			RAISERROR('La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: La descripcion solo puede contener letras y espacios (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 		-- Actualizar el registro
@@ -265,7 +282,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Genero con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Genero con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -279,6 +296,10 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Cliente
 	@apellido VARCHAR(50) = NULL,
 	@id_tipo INT = NULL,
 	@id_genero INT = NULL,
+	@dni BIGINT,
+	@cuit CHAR(13) = NULL,
+	@telefono VARCHAR(15) = NULL,
+	@email VARCHAR(80) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
@@ -288,27 +309,53 @@ BEGIN
 		-- Validar el nombre y apellido
 		IF @nombre IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 		BEGIN
-			RAISERROR('El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
 		IF @apellido IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 		BEGIN
-			RAISERROR('El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+			RAISERROR('Error: El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 			RETURN;
 		END
 
 		-- Validar id_tipo (referencia a TipoCliente)
 		IF @id_tipo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
 		BEGIN
-			RAISERROR('El Tipo de Cliente especificado no existe.', 16, 1);
+			RAISERROR('Error: El Tipo de Cliente especificado no existe.', 16, 1);
 			RETURN;
 		END
 
 		-- Validar id_genero (referencia a Genero)
 		IF @id_genero IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero)
 		BEGIN
-			RAISERROR('El Género especificado no existe.', 16, 1);
+			RAISERROR('Error: El Género especificado no existe.', 16, 1);
+			RETURN;
+		END
+
+		-- Validar el formato de CUIT
+		IF @cuit IS NOT NULL AND @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		BEGIN
+			RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
+			RETURN;
+		END
+
+		-- Validar el teléfono
+		IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
+		BEGIN
+			RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
+			RETURN;
+		END
+		ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
+		BEGIN
+			RAISERROR('Error: Formato de número inválido.', 16, 1);
+			RETURN;
+		END
+
+		-- Validar el formato del correo electrónico
+		IF @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0)
+		BEGIN
+			RAISERROR('Error: El email no tiene un formato básico válido (debe contener un "@" y un punto) o contiene espacios.', 16, 1);
 			RETURN;
 		END
 
@@ -319,6 +366,10 @@ BEGIN
 			apellido = COALESCE(@apellido, apellido),
 			id_tipo = COALESCE(@id_tipo, id_tipo),
 			id_genero = COALESCE(@id_genero, id_genero),
+			dni = COALESCE(@dni, dni),
+			cuit = COALESCE(@cuit, cuit),
+			telefono = COALESCE(@telefono, telefono),
+			email = COALESCE(@email, email),
 			activo = COALESCE(@activo, activo)
         WHERE id = @id;
 
@@ -326,7 +377,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Cliente con el ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Cliente con el ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -336,18 +387,35 @@ IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
 GO
 CREATE PROCEDURE gestion_producto.Modificar_Proveedor
-	@id INT,
-	@nombre VARCHAR(40) = NULL,
-	@activo BIT = NULL
+	@id			INT,
+	@nombre		VARCHAR(100) = NULL,
+	@telefono	VARCHAR(15) = NULL,
+	@activo		BIT = NULL
 AS
 BEGIN
 	-- Verificar si el proveedor existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
 	BEGIN
+		-- Validar el teléfono
+		IF @telefono IS NOT NULL
+		BEGIN
+			IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
+			BEGIN
+				RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
+				RETURN;
+			END
+			ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
+			BEGIN
+				RAISERROR('Error: Formato de número inválido.', 16, 1);
+				RETURN;
+			END
+		END
+
 		-- Actualizar el registro
 		UPDATE gestion_producto.Proveedor
 		SET 
 			nombre = COALESCE(@nombre, nombre),
+			telefono = COALESCE(@telefono, telefono),
 			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 		
@@ -355,7 +423,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Proveedor con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Proveedor con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -383,7 +451,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        RAISERROR('No se encontró un TipoProducto con ID %d.', 16, 1, @id);
+        RAISERROR('Error: No se encontró un TipoProducto con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -404,7 +472,7 @@ BEGIN
 		-- Validar id_tipoProducto (referencia a TipoProducto)
 		IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
 		BEGIN
-			RAISERROR('El Tipo de Producto especificado no existe.', 16, 1);
+			RAISERROR('Error: El Tipo de Producto especificado no existe.', 16, 1);
 			RETURN;
 		END
 
@@ -420,7 +488,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró una Categoría con ID %d', 16, 1, @id);
+		RAISERROR('Error: No se encontró una Categoría con ID %d', 16, 1, @id);
 	END
 END;
 GO
@@ -446,21 +514,21 @@ BEGIN
 		-- Validar el precio
 		IF @precio IS NOT NULL AND @precio <= 0
 		BEGIN
-			RAISERROR('El precio debe ser mayor a 0.', 16, 1);
+			RAISERROR('Error: El precio debe ser mayor a 0.', 16, 1);
 			RETURN;
 		END
 
 		-- Validar id_categoria (referencia a Categoria)
 		IF @id_categoria IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria)
 		BEGIN
-			RAISERROR('La Categoría especificada no existe.', 16, 1);
+			RAISERROR('Error: La Categoría especificada no existe.', 16, 1);
 			RETURN;
 		END
 
 		-- Validar id_proveedor (referencia a Proveedor)
 		IF @id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor)
 		BEGIN
-			RAISERROR('El Proveedor especificado no existe.', 16, 1);
+			RAISERROR('Error: El Proveedor especificado no existe.', 16, 1);
 			RETURN;
 		END
 
@@ -481,7 +549,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró un Producto con ID %d.', 16, 1, @id)
+		RAISERROR('Error: No se encontró un Producto con ID %d.', 16, 1, @id)
 	END
 END;
 GO
@@ -510,7 +578,7 @@ BEGIN
     END
     ELSE
     BEGIN
-		RAISERROR('No se encontró un MedioDePago con ID %d.', 16, 1, @id)
+		RAISERROR('Error: No se encontró un MedioDePago con ID %d.', 16, 1, @id)
     END
 END;
 GO
@@ -541,12 +609,12 @@ BEGIN
         END
         ELSE
         BEGIN
-			RAISERROR('El nombre debe ser un solo caracter alfabético.', 16, 1);
+			RAISERROR('Error: El nombre debe ser un solo caracter alfabético.', 16, 1);
         END
     END
     ELSE
     BEGIN
-		RAISERROR('No se encontró un TipoFactura con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un TipoFactura con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -572,35 +640,35 @@ BEGIN
         -- Validar id_tipoFactura
         IF @id_tipoFactura IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipoFactura)
         BEGIN
-			RAISERROR('El Tipo de Factura especificado no existe.', 16, 1);
+			RAISERROR('Error: El Tipo de Factura especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_cliente
         IF @id_cliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente)
         BEGIN
-            RAISERROR('El Cliente especificado no existe.', 16, 1);
+            RAISERROR('Error: El Cliente especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_medioDePago
         IF @id_medioDePago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago)
         BEGIN
-            RAISERROR('El Medio de Pago especificado no existe.', 16, 1);
+            RAISERROR('Error: El Medio de Pago especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_empleado
         IF @id_empleado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado)
         BEGIN
-            RAISERROR('El Empleado especificado no existe.', 16, 1);
+            RAISERROR('Error: El Empleado especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_sucursal
         IF @id_sucursal IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal)
         BEGIN
-            RAISERROR('La Sucursal especificada no existe.', 16, 1);
+            RAISERROR('Error: La Sucursal especificada no existe.', 16, 1);
             RETURN;
         END
 
@@ -645,35 +713,35 @@ BEGIN
         -- Validar id_producto
         IF @id_producto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
         BEGIN
-            RAISERROR('El Producto especificado no existe.', 16, 1);
+            RAISERROR('Error: El Producto especificado no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar id_factura
         IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura)
         BEGIN
-            RAISERROR('La Factura especificada no existe.', 16, 1);
+            RAISERROR('Error: La Factura especificada no existe.', 16, 1);
             RETURN;
         END
 
         -- Validar cantidad
         IF @cantidad IS NOT NULL AND @cantidad <= 0
         BEGIN
-            RAISERROR('La cantidad debe ser mayor a 0.', 16, 1);
+            RAISERROR('Error: La cantidad debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
         -- Validar subtotal
         IF @subtotal IS NOT NULL AND @subtotal <= 0
         BEGIN
-            RAISERROR('El subtotal debe ser mayor a 0.', 16, 1);
+            RAISERROR('Error: El subtotal debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
         -- Validar precio unitario
         IF @precio_unitario IS NOT NULL AND @precio_unitario <= 0
         BEGIN
-            RAISERROR('El precio unitario debe ser mayor a 0.', 16, 1);
+            RAISERROR('Error: El precio unitario debe ser mayor a 0.', 16, 1);
             RETURN;
         END
 
@@ -691,7 +759,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        RAISERROR('No se encontró un Detalle de Venta con el ID y Factura especificados.', 16, 1);
+        RAISERROR('Error: No se encontró un Detalle de Venta con el ID y Factura especificados.', 16, 1);
     END
 END;
 GO
@@ -806,7 +874,7 @@ BEGIN
     -- Si no se encuentra el cliente, el valor de @id será NULL
     IF @id IS NULL
     BEGIN
-        RAISERROR('El cliente con DNI %I64d no existe.', 16, 1, @dni);
+        RAISERROR('Error: El cliente con DNI %I64d no existe.', 16, 1, @dni);
     END
 END
 GO
@@ -830,10 +898,7 @@ BEGIN
     -- Si no se encuentra la factura, el valor de @id será NULL
 	IF @id IS NULL
     BEGIN
-        RAISERROR('La factura con id %s no existe.', 16, 1, @id_factura);
+        RAISERROR('Error: La factura con id %s no existe.', 16, 1, @id_factura);
     END
 END
 GO
-
-
-
