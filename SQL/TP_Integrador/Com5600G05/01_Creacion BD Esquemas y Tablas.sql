@@ -1,4 +1,16 @@
-/*ENTREGA 3:
+/*
+		BASE DE DATOS APLICADA
+		GRUPO: 05
+		COMISION: 02-5600
+		INTEGRANTES:
+			María del Pilar Bourdieu 45289653
+			Abigail Karina Peñafiel Huayta	41913506
+			Federico Pucci 41106855
+			Mara Verónica Guerrera 40538513
+
+		FECHA DE ENTREGA: 22/11/2024
+
+ENTREGA 3:
 
 Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
 las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
@@ -14,8 +26,8 @@ en la creación de objetos. NO use el esquema “dbo”.
 
 USE MASTER
 DROP DATABASE Com5600G05
-USE Com5600G05*/
-
+USE Com5600G05
+*/
 -- ================== CREACION DE DB, ESQUEMAS Y TABLAS ==================
 
 IF NOT EXISTS (
@@ -170,6 +182,13 @@ BEGIN
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_EmpleadoCUIL CHECK (cuil LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
+		CONSTRAINT Ck_EmpleadoEmail CHECK (
+		CHARINDEX(' ', email) = 0 -- Verifica que el correo no contenga espacios
+		AND PATINDEX('%@%.%', email) > 0 -- Verifica que el correo tenga al menos un "@" y un "."
+		),
+		CONSTRAINT Ck_EmpleadoEmailEmp CHECK (
+		CHARINDEX(' ', email_empresa) = 0 AND PATINDEX('%@%.%', email_empresa) > 0),
+
 		CONSTRAINT PK_EmpleadoID PRIMARY KEY (id),
 		CONSTRAINT FK_CargoID FOREIGN KEY (id_cargo) REFERENCES gestion_sucursal.Cargo(id),
 		CONSTRAINT FK_SucursalID1 FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
@@ -229,10 +248,18 @@ BEGIN
 		apellido			VARCHAR(50),
 		id_tipo				INT,
 		id_genero			INT,
-		cuit				CHAR(13) UNIQUE, -- puede o no tener 
+		dni					BIGINT UNIQUE,
+		cuit				CHAR(13) UNIQUE, -- podria no tener
+		telefono			VARCHAR(15), -- podria no tener
+		email				VARCHAR(80) UNIQUE, -- podria no tener
 		activo				BIT DEFAULT 1,
 
 		CONSTRAINT Ck_ClienteCUIT CHECK (cuit LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'),
+		CONSTRAINT Ck_ClienteTelefono CHECK (
+		PATINDEX('%[^ 0-9-]%', telefono) = 0 AND (telefono LIKE '____-____' OR telefono LIKE '11 ____-____')),
+		CONSTRAINT Ck_ClienteEmail CHECK (
+		CHARINDEX(' ', email) = 0 AND PATINDEX('%@%.%', email) > 0),
+
 		CONSTRAINT PK_ClienteID PRIMARY KEY (id),
 		CONSTRAINT FK_TipoCliente FOREIGN KEY (id_tipo) REFERENCES gestion_sucursal.TipoCliente(id),
 		CONSTRAINT FK_Genero FOREIGN KEY (id_genero) REFERENCES gestion_sucursal.Genero(id)
