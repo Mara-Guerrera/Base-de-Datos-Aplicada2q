@@ -23,26 +23,23 @@ IF NOT EXISTS (SELECT 1 FROM sys.database_role_members
 BEGIN
     EXEC sp_addrolemember 'Supervisor', 'Grupo5';
 END
-IF OBJECT_ID('[gestion_venta].[Tipo_Comprobante]', 'U') IS NOT NULL
-    DROP TABLE [gestion_venta].[Tipo_Comprobante];
 GO
-	CREATE TABLE gestion_venta.Tipo_Comprobante
-	(
-		id INT IDENTITY(1,1),
-		nombre VARCHAR(40),
-		CONSTRAINT PK_TipoComprobante PRIMARY KEY (id)
-	)
-
+CREATE TABLE gestion_venta.Tipo_Comprobante
+(
+	id INT IDENTITY(1,1),
+	nombre VARCHAR(40),
+	CONSTRAINT PK_TipoComprobante PRIMARY KEY (id)
+)
 GO
 --Inserciones en tabla tipo comprobante--
-/*INSERT INTO gestion_venta.Tipo_Comprobante (nombre)
+INSERT INTO gestion_venta.Tipo_Comprobante (nombre)
 VALUES 
     ('NOTAS DE DEBITO B'),
     ('NOTAS DE CREDITO B'),
     ('RECIBOS B'),
-    ('NOTAS DE VENTA AL CONTADO B');*/
+    ('NOTAS DE VENTA AL CONTADO B');
 -----NOTA DE CREDITO----
-
+GO
 CREATE TABLE gestion_venta.NotaCredito
     (
         id                  INT IDENTITY(1,1),
@@ -80,16 +77,14 @@ CREATE TABLE gestion_venta.Detalle_Nota
 		CONSTRAINT CK_ImporteCredito CHECK (importe > 0)
     )
 GO
-
--- Otorgar permisos al rol Supervisor
-GRANT INSERT, SELECT ON gestion_venta.NotaCredito TO Supervisor;
-GRANT INSERT, SELECT ON gestion_venta.Detalle_Nota TO Supervisor;
+IF OBJECT_ID('[gestion_venta].[Generar_Nota_Credito]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Generar_Nota_Credito];
 GO
 CREATE PROCEDURE gestion_venta.Generar_Nota_Credito
-	@id_factura INT,
-	@id_tipo_comprobante INT,
-	@id_sucursal INT,
-	@id_cliente INT,
+    @id_factura INT,
+    @id_tipo_comprobante INT,
+    @id_sucursal INT,
+    @id_cliente INT,
 	@motivo VARCHAR(40),
 	@id_supervisor INT
 AS
@@ -118,6 +113,11 @@ BEGIN
 		RAISERROR('El empleado no existe o no es supervisor.', 16, 1);
         RETURN;
 	END
+	IF EXISTS(SELECT 1 FROM gestion_venta.NotaCredito WHERE id_factura = @id_factura)
+	BEGIN
+		RAISERROR('Ya existe una nota de crédito asociada a la factura', 16, 1);
+		RETURN;
+	END
 	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente AND activo = 1)
 	BEGIN
 		RAISERROR('ID de cliente no válido.', 16, 1);
@@ -131,14 +131,18 @@ BEGIN
     PRINT 'Nota de crédito generada exitosamente.';
 END
 GO
+IF OBJECT_ID('[gestion_venta].[Insertar_Detalle_Nota]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Insertar_Detalle_Nota];
+GO
 
 CREATE PROCEDURE gestion_venta.Insertar_Detalle_Nota
-	@id_nota INT,
-	@id_producto INT,
-	@cantidad INT,
-	@valor_credito DECIMAL(7,2)
+@id_nota INT,
+@id_producto INT,
+@cantidad INT,
+@valor_credito DECIMAL(7,2)
 AS
 BEGIN
+
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @id_nota)
 	BEGIN
 		RAISERROR('La nota de crédito no es válida',16,1);
@@ -156,12 +160,24 @@ BEGIN
 		RAISERROR('Ya hay un detalle con el mismo producto asociado a la nota de crédito.',16,1);
 		RETURN;
 	END
-
-	IF @cantidad <= 0 OR @valor_credito <= 0
+	--Verificación de que el id_producto este en la factura a la que se desea hacer nota de crédito--
+	IF NOT EXISTS (SELECT 1 FROM gestion_venta.DetalleVenta dv 
+	INNER JOIN gestion_venta.NotaCredito n ON dv.id_factura = n.id_factura 
+	WHERE dv.id_producto = @id_producto)
 	BEGIN
-		RAISERROR('La cantidad o el precio no es válido.',16,1);
+		RAISERROR('No existe detalle de la factura asociada que contenga el producto que se desea incluir en la nota de crédito.',16,1)
 		RETURN;
 	END
+
+	--Verificación de que la cantidad no sea nula ni número negativo y tampoco mayor a la que aparece en el detalle de venta--
+	IF @cantidad <= 0 OR @cantidad > (SELECT cantidad FROM gestion_venta.DetalleVenta dv INNER JOIN gestion_venta.NotaCredito n 
+	ON dv.id_factura = n.id_factura 
+	WHERE dv.id_producto = @id_producto) OR @valor_credito <= 0
+	BEGIN
+		RAISERROR('La cantidad y/o el valor crédito no es válida',16,1);
+		RETURN;
+	END
+
 	DECLARE @importe DECIMAL(8,2);
 	SET @importe = @valor_credito * @cantidad;
 
@@ -170,3 +186,7 @@ BEGIN
     PRINT 'Detalle de nota de crédito insertado.';
 END
 GO
+-- Otorgar permisos al rol Supervisor
+GRANT INSERT, UPDATE ON gestion_venta.NotaCredito TO Supervisor;
+GRANT INSERT, UPDATE ON gestion_venta.Detalle_Nota TO Supervisor;
+
