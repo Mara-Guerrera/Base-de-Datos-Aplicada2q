@@ -1,3 +1,29 @@
+/*
+		BASE DE DATOS APLICADA
+		GRUPO: 05
+		COMISION: 02-5600
+		INTEGRANTES:
+			María del Pilar Bourdieu 45289653
+			Abigail Karina Peñafiel Huayta	41913506
+			Federico Pucci 41106855
+			Mara Verónica Guerrera 40538513
+
+		FECHA DE ENTREGA: 22/11/2024
+
+ENTREGA 3:
+
+Deberá instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicación de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregaría al DBA.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deberá entregar
+un archivo .sql con el script completo de creación (debe funcionar si se lo ejecuta “tal cual” es
+entregado). Incluya comentarios para indicar qué hace cada módulo de código.
+Genere store procedures para manejar la inserción, modificado, borrado (si corresponde,
+también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con “SP”.
+Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
+en la creación de objetos. NO use el esquema “dbo”.
+*/
 -- ============================ STORED PROCEDURES BORRADO ============================
 USE Com5600G05
 GO
