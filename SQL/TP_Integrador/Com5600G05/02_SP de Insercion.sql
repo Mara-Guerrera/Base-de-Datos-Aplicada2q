@@ -29,6 +29,449 @@ en la creación de objetos. NO use el esquema “dbo”.*/
 USE [Com5600G05]
 GO
 
+-- ============================ SP INSERCION GESTION_SUCURSAL ============================
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Sucursal]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
+GO
+CREATE PROCEDURE gestion_sucursal.Insertar_Sucursal
+	@nombre VARCHAR(30),
+	@direccion VARCHAR(100),
+	@horario VARCHAR(50),
+	@telefono VARCHAR(15)
+AS
+BEGIN
+    -- Validar el teléfono
+	IF @telefono IS NOT NULL AND (
+		LEN(REPLACE(@telefono, '-', '')) NOT BETWEEN 8 AND 10)
+		--OR PATINDEX('%[^0-9-]%', @telefono) > 0 OR PATINDEX('%[^0-9][0-9-]%', @telefono) > 0 )
+	BEGIN
+		RAISERROR('El número de teléfono no es válido. Debe tener entre 8 y 10 dígitos y solo contener números y guiones.', 16, 1);
+		RETURN;
+	END
+
+    -- Verificar si la sucursal ya existe (por nombre)
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 1)
+	BEGIN
+		RAISERROR('Ya existe la sucursal.', 16, 1);
+		RETURN;
+	END
+
+	-- Verificar si la sucursal está inactiva, en cuyo caso se reactiva
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 0)
+	BEGIN
+		UPDATE gestion_sucursal.Sucursal
+		SET
+			direccion = @direccion,
+			horario = @horario,
+			telefono = @telefono
+		WHERE nombre = @nombre AND activo = 0;
+		PRINT 'La sucursal se dió de alta.';
+		RETURN;
+	END
+
+	-- Insertar nueva sucursal
+	DECLARE @empresaID CHAR(13)
+	SELECT @empresaID = cuit FROM gestion_sucursal.Empresa
+
+	INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, id_empresa)
+	VALUES (@nombre, @direccion, @horario, @telefono, @empresaID);
+
+	PRINT 'Sucursal insertada exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Turno]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Turno]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Turno];
+GO
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Turno]
+    @descripcion VARCHAR(16)
+AS
+BEGIN
+    -- Verificar si el turno con la misma descripción ya existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion  AND activo = 1)
+    BEGIN
+        RAISERROR('Ya existe el turno que se desea insertar.', 16, 1);
+        RETURN;
+    END
+
+    -- Si el turno está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion  AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Turno
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        
+        PRINT 'El turno se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo turno
+    INSERT INTO gestion_sucursal.Turno (descripcion)
+    VALUES (@descripcion);
+
+    PRINT 'Turno insertado exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Cargo]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Cargo]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Cargo];
+GO
+
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Cargo]
+    @nombre VARCHAR(20)
+AS
+BEGIN
+    -- Verificar si el cargo con el mismo nombre ya existe
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre  AND activo = 1)
+    BEGIN
+        RAISERROR('Error: Ya existe un cargo con ese nombre.',16,1);
+        RETURN;
+    END
+
+    -- Si el cargo está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre  AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Cargo
+        SET activo = 1
+        WHERE nombre = @nombre AND activo = 0;
+        
+        PRINT 'El cargo se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo cargo
+    INSERT INTO gestion_sucursal.Cargo (nombre)
+    VALUES (@nombre);
+
+    PRINT 'Cargo insertado exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Empleado]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Empleado]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Empleado];
+GO
+
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Empleado]
+	@legajo				INT,
+	@nombre				VARCHAR(30),
+	@apellido			VARCHAR(30),
+	@dni				BIGINT,
+	@direccion			VARCHAR(160),
+	@cuil				CHAR(13),
+	@email				VARCHAR(60),
+	@email_empresa		VARCHAR(60),
+	@id_cargo			INT,
+	@id_sucursal		INT,
+	@id_turno			INT
+AS
+BEGIN
+
+	IF @legajo IS NULL
+	BEGIN
+		RAISERROR('El legajo no puede ser nulo', 16, 1);
+		RETURN;
+	END
+	--Verificación de la existencia de la sucursal, turno y cargo (foráneas)
+
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
+    BEGIN
+        RAISERROR('Error: La sucursal con ID %d no existe o no está activa.', 16, 1, @id_sucursal);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id_turno AND activo = 1)
+    BEGIN
+        RAISERROR('Error: El turno con ID %d no existe o no está activo.', 16, 1, @id_turno);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id_cargo AND activo = 1)
+    BEGIN
+        RAISERROR('Error: El cargo con ID %d no existe o no está activo.', 16, 1, @id_cargo);
+        RETURN;
+    END
+
+	-- Si el empleado esta activo en la misma sucursal.
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado
+			   WHERE legajo = @legajo 
+			   AND id_sucursal = @id_sucursal 
+			   AND activo = 1)
+    BEGIN
+        RAISERROR('Error: El empleado ya existe.', 16, 1);
+        RETURN;
+    END
+
+	-- El empleado fue dado de baja para esa sucursal.
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado 
+				WHERE legajo = @legajo 
+				AND id = @id_sucursal 
+				AND activo = 0)
+	BEGIN
+		UPDATE gestion_sucursal.Empleado
+        SET activo = 1
+        WHERE legajo = @legajo AND activo = 0 AND id_sucursal = @id_sucursal;
+		PRINT 'El empleado se dió de alta nuevamente en esta sucursal.';
+		RETURN;
+	END
+
+	--Verificación del formato de CUIL
+	IF @cuil IS NOT NULL AND @cuil NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+	BEGIN
+		RAISERROR('El cuil no tiene un formato válido: 99-99999999-9', 16, 1);
+		RETURN;
+	END
+	--Verificación del formato de los correos electrónicos
+	IF (@email IS NOT NULL AND PATINDEX('%@%.%', @email) = 0) 
+    OR (@email_empresa IS NOT NULL AND PATINDEX('%@%.%', @email_empresa) = 0)
+	BEGIN
+		RAISERROR('El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto).', 16, 1);
+		RETURN;
+	END
+	--Inserción de los valores en la tabla gestion_sucursal.Empleado
+	INSERT INTO gestion_sucursal.Empleado(legajo, nombre, apellido, dni, direccion, cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
+	VALUES (@legajo, @nombre, @apellido, @dni, @direccion, @cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
+
+	PRINT 'Nuevo empleado insertado con exito.'
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_TipoCliente]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_sucursal].[Insertar_TipoCliente]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_TipoCliente];
+GO
+
+CREATE PROCEDURE [gestion_sucursal].[Insertar_TipoCliente]
+    @descripcion VARCHAR(10)
+AS
+BEGIN
+    -- Verificar si el tipo de cliente con la misma descripción ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 1)
+    BEGIN
+        RAISERROR('Ya existe el tipo de cliente que se desea insertar.', 16, 1);
+        RETURN;
+    END
+
+    -- Si el tipo de cliente existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.TipoCliente
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        
+        PRINT 'El tipo de cliente se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo tipo de cliente
+    INSERT INTO gestion_sucursal.TipoCliente (descripcion)
+    VALUES (@descripcion);
+
+    PRINT 'Tipo de cliente insertado exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Genero]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Genero]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Genero];
+GO
+
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Genero]
+    @descripcion VARCHAR(10)
+AS
+BEGIN
+    -- Verificar si el género con la misma descripción ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 1)
+    BEGIN
+        RAISERROR('Ya existe un género con dicha descripción', 16, 1);
+        RETURN;
+    END
+
+    -- Si el género existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 0)
+    BEGIN
+        UPDATE gestion_sucursal.Genero
+        SET activo = 1
+        WHERE descripcion = @descripcion AND activo = 0;
+        PRINT 'El género se dió de alta.';
+        RETURN;
+    END
+
+    -- Insertar nuevo género
+    INSERT INTO gestion_sucursal.Genero (descripcion)
+    VALUES (@descripcion);
+
+    PRINT 'Género insertado exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Cliente]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_sucursal].[Insertar_Cliente]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_sucursal].[Insertar_Cliente];
+GO
+
+CREATE PROCEDURE [gestion_sucursal].[Insertar_Cliente]
+	@name VARCHAR(50),
+	@surname VARCHAR(50),
+	@type INT,
+	@gender INT,
+	@dni BIGINT
+AS
+BEGIN
+	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
+				WHERE dni = @dni AND activo = 1 )
+	BEGIN
+		RAISERROR('El cliente ya existe.',16,1);
+		RETURN;
+	END
+
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @type)
+    BEGIN
+        PRINT 'El tipo de cliente no existe.';
+        RETURN;
+    END
+
+    -- Verificación de la existencia del género
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @gender)
+    BEGIN
+        PRINT 'El género no existe.';
+        RETURN;
+    END
+
+	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
+				WHERE dni = @dni AND activo = 0 )
+	BEGIN
+		UPDATE gestion_sucursal.Cliente
+        SET activo = 1
+        WHERE dni = @dni
+		PRINT 'El cliente se dió de alta.';
+		RETURN;
+	END
+
+	--Inserción del nuevo cliente
+	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,dni)
+	VALUES (@name, @surname, @type, @gender,@dni);
+	PRINT 'Cliente insertado con éxito.';
+END
+GO
+-- ============================ SP INSERCION GESTION_PRODUCTO ============================
+
+/****** Object:  StoredProcedure [gestion_producto].[Insertar_Proveedor]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_producto].[Insertar_Proveedor]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Insertar_Proveedor];
+GO
+
+CREATE PROCEDURE [gestion_producto].[Insertar_Proveedor]
+    @nombre VARCHAR(40)
+AS
+BEGIN
+    -- Verificar si el proveedor con el mismo nombre ya existe y está activo
+    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre  AND activo = 1)
+    BEGIN
+        RAISERROR('Error: Ya existe un proveedor con ese nombre.',16,1);
+        RETURN;
+    END
+
+    -- Si el proveedor existe pero está inactivo, se reactiva
+    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre  AND activo = 0)
+    BEGIN
+        UPDATE gestion_producto.Proveedor
+        SET activo = 1
+        WHERE nombre = @nombre AND activo = 0;
+        
+        PRINT 'El proveedor se dió de alta nuevamente.';
+        RETURN;
+    END
+
+    -- Insertar nuevo proveedor
+    INSERT INTO gestion_producto.Proveedor (nombre)
+    VALUES (@nombre);
+
+    PRINT 'Proveedor insertado exitosamente.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_producto].[Insertar_Tipo_Producto]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_producto].[Insertar_Tipo_Producto]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_producto].[Insertar_Tipo_Producto];
+GO
+
+CREATE PROCEDURE [gestion_producto].[Insertar_Tipo_Producto] 
+	@nombre VARCHAR(40)
+AS
+BEGIN
+	IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
+				WHERE @nombre = nombre  and activo = 1)
+	BEGIN
+		RAISERROR('El tipo de producto "%s" ya existe.', 16, 1, @nombre)
+		RETURN;
+	END
+	ELSE
+	BEGIN
+		IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
+					WHERE @nombre = nombre  and activo = 0)
+		BEGIN
+			UPDATE gestion_producto.TipoProducto
+            SET activo = 1
+            WHERE @nombre = nombre  and activo = 0;
+			
+			PRINT 'El tipo de producto se dió de alta.';
+			RETURN;
+		END
+
+		INSERT INTO gestion_producto.TipoProducto(nombre)
+		VALUES(@nombre);
+		PRINT @nombre + ' fue insertado.';
+	END
+END
+GO
 
 /****** Object:  StoredProcedure [gestion_producto].[Insertar_Categoria]    Script Date: 13/11/2024 14:39:56 ******/
 SET ANSI_NULLS ON
@@ -160,557 +603,9 @@ BEGIN
     PRINT 'Nuevo producto insertado con éxito.';
 END
 GO
-/****** Object:  StoredProcedure [gestion_producto].[Insertar_Proveedor]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
-IF OBJECT_ID('[gestion_producto].[Insertar_Proveedor]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Insertar_Proveedor];
-GO
-
-CREATE PROCEDURE [gestion_producto].[Insertar_Proveedor]
-    @nombre VARCHAR(40)
-AS
-BEGIN
-    -- Verificar si el proveedor con el mismo nombre ya existe y está activo
-    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre  AND activo = 1)
-    BEGIN
-        RAISERROR('Error: Ya existe un proveedor con ese nombre.',16,1);
-        RETURN;
-    END
-
-    -- Si el proveedor existe pero está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre  AND activo = 0)
-    BEGIN
-        UPDATE gestion_producto.Proveedor
-        SET activo = 1
-        WHERE nombre = @nombre AND activo = 0;
-        
-        PRINT 'El proveedor se dió de alta nuevamente.';
-        RETURN;
-    END
-
-    -- Insertar nuevo proveedor
-    INSERT INTO gestion_producto.Proveedor (nombre)
-    VALUES (@nombre);
-
-    PRINT 'Proveedor insertado exitosamente.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_producto].[Insertar_Tipo_Producto]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_producto].[Insertar_Tipo_Producto]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Insertar_Tipo_Producto];
-GO
-
-CREATE PROCEDURE [gestion_producto].[Insertar_Tipo_Producto] 
-	@nombre VARCHAR(40)
-AS
-BEGIN
-	IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
-				WHERE @nombre = nombre  and activo = 1)
-	BEGIN
-		RAISERROR('El tipo de producto "%s" ya existe.', 16, 1, @nombre)
-		RETURN;
-	END
-	ELSE
-	BEGIN
-		IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
-					WHERE @nombre = nombre  and activo = 0)
-		BEGIN
-			UPDATE gestion_producto.TipoProducto
-            SET activo = 1
-            WHERE @nombre = nombre  and activo = 0;
-			
-			PRINT 'El tipo de producto se dió de alta.';
-			RETURN;
-		END
-
-		INSERT INTO gestion_producto.TipoProducto(nombre)
-		VALUES(@nombre);
-		PRINT @nombre + ' fue insertado.';
-	END
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Cargo]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Cargo]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Cargo];
-GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Cargo]
-    @nombre VARCHAR(20)
-AS
-BEGIN
-    -- Verificar si el cargo con el mismo nombre ya existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre  AND activo = 1)
-    BEGIN
-        RAISERROR('Error: Ya existe un cargo con ese nombre.',16,1);
-        RETURN;
-    END
-
-    -- Si el cargo está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre  AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.Cargo
-        SET activo = 1
-        WHERE nombre = @nombre AND activo = 0;
-        
-        PRINT 'El cargo se dió de alta.';
-        RETURN;
-    END
-
-    -- Insertar nuevo cargo
-    INSERT INTO gestion_sucursal.Cargo (nombre)
-    VALUES (@nombre);
-
-    PRINT 'Cargo insertado exitosamente.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Cliente]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Cliente]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Cliente];
-GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Cliente]
-	@name VARCHAR(50),
-	@surname VARCHAR(50),
-	@type INT,
-	@gender INT,
-	@dni BIGINT
-AS
-BEGIN
-	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
-				WHERE dni = @dni AND activo = 1 )
-	BEGIN
-		RAISERROR('El cliente ya existe.',16,1);
-		RETURN;
-	END
-
-	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @type)
-    BEGIN
-        PRINT 'El tipo de cliente no existe.';
-        RETURN;
-    END
-
-    -- Verificación de la existencia del género
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @gender)
-    BEGIN
-        PRINT 'El género no existe.';
-        RETURN;
-    END
-
-	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
-				WHERE dni = @dni AND activo = 0 )
-	BEGIN
-		UPDATE gestion_sucursal.Cliente
-        SET activo = 1
-        WHERE dni = @dni
-		PRINT 'El cliente se dió de alta.';
-		RETURN;
-	END
-
-	--Inserción del nuevo cliente
-	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero,dni)
-	VALUES (@name, @surname, @type, @gender,@dni);
-	PRINT 'Cliente insertado con éxito.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Empleado]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Empleado]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Empleado];
-GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Empleado]
-	@legajo				INT,
-	@nombre				VARCHAR(30),
-	@apellido			VARCHAR(30),
-	@dni				BIGINT,
-	@direccion			VARCHAR(160),
-	@cuil				CHAR(13),
-	@email				VARCHAR(60),
-	@email_empresa		VARCHAR(60),
-	@id_cargo			INT,
-	@id_sucursal		INT,
-	@id_turno			INT
-AS
-BEGIN
-
-	IF @legajo IS NULL
-	BEGIN
-		RAISERROR('El legajo no puede ser nulo', 16, 1);
-		RETURN;
-	END
-	--Verificación de la existencia de la sucursal, turno y cargo (foráneas)
-
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
-    BEGIN
-        RAISERROR('Error: La sucursal con ID %d no existe o no está activa.', 16, 1, @id_sucursal);
-        RETURN;
-    END
-
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id_turno AND activo = 1)
-    BEGIN
-        RAISERROR('Error: El turno con ID %d no existe o no está activo.', 16, 1, @id_turno);
-        RETURN;
-    END
-
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id_cargo AND activo = 1)
-    BEGIN
-        RAISERROR('Error: El cargo con ID %d no existe o no está activo.', 16, 1, @id_cargo);
-        RETURN;
-    END
-
-	-- Si el empleado esta activo en la misma sucursal.
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado
-			   WHERE legajo = @legajo 
-			   AND id_sucursal = @id_sucursal 
-			   AND activo = 1)
-    BEGIN
-        RAISERROR('Error: El empleado ya existe.', 16, 1);
-        RETURN;
-    END
-
-	-- El empleado fue dado de baja para esa sucursal.
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado 
-				WHERE legajo = @legajo 
-				AND id = @id_sucursal 
-				AND activo = 0)
-	BEGIN
-		UPDATE gestion_sucursal.Empleado
-        SET activo = 1
-        WHERE legajo = @legajo AND activo = 0 AND id_sucursal = @id_sucursal;
-		PRINT 'El empleado se dió de alta nuevamente en esta sucursal.';
-		RETURN;
-	END
-
-	--Verificación del formato de CUIL
-	IF @cuil IS NOT NULL AND @cuil NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
-	BEGIN
-		RAISERROR('El cuil no tiene un formato válido: 99-99999999-9', 16, 1);
-		RETURN;
-	END
-	--Verificación del formato de los correos electrónicos
-	IF (@email IS NOT NULL AND PATINDEX('%@%.%', @email) = 0) 
-    OR (@email_empresa IS NOT NULL AND PATINDEX('%@%.%', @email_empresa) = 0)
-	BEGIN
-		RAISERROR('El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto).', 16, 1);
-		RETURN;
-	END
-	--Inserción de los valores en la tabla gestion_sucursal.Empleado
-	INSERT INTO gestion_sucursal.Empleado(legajo, nombre, apellido, dni, direccion, cuil, email, email_empresa, id_cargo, id_sucursal, id_turno)
-	VALUES (@legajo, @nombre, @apellido, @dni, @direccion, @cuil, @email, @email_empresa, @id_cargo, @id_sucursal, @id_turno)
-
-	PRINT 'Nuevo empleado insertado con exito.'
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Genero]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Genero]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Genero];
-GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Genero]
-    @descripcion VARCHAR(10)
-AS
-BEGIN
-    -- Verificar si el género con la misma descripción ya existe y está activo
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 1)
-    BEGIN
-        RAISERROR('Ya existe un género con dicha descripción', 16, 1);
-        RETURN;
-    END
-
-    -- Si el género existe pero está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.Genero
-        SET activo = 1
-        WHERE descripcion = @descripcion AND activo = 0;
-        PRINT 'El género se dió de alta.';
-        RETURN;
-    END
-
-    -- Insertar nuevo género
-    INSERT INTO gestion_sucursal.Genero (descripcion)
-    VALUES (@descripcion);
-
-    PRINT 'Género insertado exitosamente.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Sucursal]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
--- ============================ SP INSERCION GESTION_SUCURSAL =======================
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
-GO
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Sucursal]
-	@nombre VARCHAR(30),
-	@direccion VARCHAR(100),
-	@horario VARCHAR(50),
-	@telefono CHAR(9),
-	@cuit CHAR(13)
-AS
-BEGIN
-    -- Verificar si el teléfono tiene el formato correcto
-    IF @telefono IS NOT NULL AND PATINDEX('[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]', @telefono) = 0
-	BEGIN
-		RAISERROR('El formato del teléfono no es válido: XXXX-XXXX.', 16, 1);
-		RETURN;
-	END
-
-    -- Verificar si la sucursal ya existe (por nombre)
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 1)
-    BEGIN
-         RAISERROR('Ya existe la sucursal.', 16, 1);
-        RETURN;
-    END
-
-    -- Verificar si la sucursal está inactiva, en cuyo caso se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.Sucursal
-        SET
-			direccion = @direccion, horario = @horario, telefono = @telefono, cuit = @cuit
-        WHERE nombre = @nombre AND activo = 0;
-        PRINT 'La sucursal se dió de alta.';
-        RETURN;
-    END
-
-    -- Insertar nueva sucursal
-    INSERT INTO gestion_sucursal.Sucursal (nombre, direccion, horario, telefono, cuit)
-    VALUES (@nombre, @direccion, @horario, @telefono, @cuit);
-
-    PRINT 'Sucursal insertada exitosamente.';
-END
-GO
-
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_TipoCliente]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-IF OBJECT_ID('[gestion_sucursal].[Insertar_TipoCliente]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_TipoCliente];
-GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_TipoCliente]
-    @descripcion VARCHAR(10)
-AS
-BEGIN
-    -- Verificar si el tipo de cliente con la misma descripción ya existe y está activo
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 1)
-    BEGIN
-        RAISERROR('Ya existe el tipo de cliente que se desea insertar.', 16, 1);
-        RETURN;
-    END
-
-    -- Si el tipo de cliente existe pero está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.TipoCliente
-        SET activo = 1
-        WHERE descripcion = @descripcion AND activo = 0;
-        
-        PRINT 'El tipo de cliente se dió de alta.';
-        RETURN;
-    END
-
-    -- Insertar nuevo tipo de cliente
-    INSERT INTO gestion_sucursal.TipoCliente (descripcion)
-    VALUES (@descripcion);
-
-    PRINT 'Tipo de cliente insertado exitosamente.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_sucursal].[Insertar_Turno]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-IF OBJECT_ID('[gestion_sucursal].[Insertar_Turno]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Insertar_Turno];
-GO
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Turno]
-    @descripcion VARCHAR(16)
-AS
-BEGIN
-    -- Verificar si el turno con la misma descripción ya existe
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion  AND activo = 1)
-    BEGIN
-        RAISERROR('Ya existe el turno que se desea insertar.', 16, 1);
-        RETURN;
-    END
-
-    -- Si el turno está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion  AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.Turno
-        SET activo = 1
-        WHERE descripcion = @descripcion AND activo = 0;
-        
-        PRINT 'El turno se dió de alta.';
-        RETURN;
-    END
-
-    -- Insertar nuevo turno
-    INSERT INTO gestion_sucursal.Turno (descripcion)
-    VALUES (@descripcion);
-
-    PRINT 'Turno insertado exitosamente.';
-END
-GO
-/****** Object:  StoredProcedure [gestion_venta].[Insertar_DetalleVenta]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-IF OBJECT_ID('[gestion_venta].[Insertar_DetalleVenta]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Insertar_DetalleVenta];
-GO
-
-CREATE PROCEDURE [gestion_venta].[Insertar_DetalleVenta]
-    @id_producto INT,
-    @id_factura INT,
-    @cantidad INT
-AS
-BEGIN
-    -- Declaración de variables
-    DECLARE @subtotal_actual DECIMAL(8,2);
-    DECLARE @precio_unitario DECIMAL(7,2);
-
-    BEGIN TRY
-		IF NOT EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 1)
-		BEGIN
-			RAISERROR('La factura no existe.',16,1);
-			RETURN;
-		END
-
-		IF EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 0)
-		BEGIN
-			UPDATE gestion_venta.Factura
-			SET activo = 1
-			WHERE id = @id_factura and activo = 0
-
-			UPDATE gestion_venta.DetalleVenta
-			SET activo = 1 
-			WHERE id_factura = @id_factura and activo = 0;
-			PRINT 'La venta se dió de alta.';
-			RETURN;
-		END
-		-- Obtener el precio del producto
-		SELECT @precio_unitario = precio
-		FROM gestion_producto.Producto 
-		WHERE id = @id_producto;
-
-		IF @precio_unitario IS NOT NULL
-		BEGIN
-			-- Calcular el subtotal
-			SET @subtotal_actual = @cantidad * @precio_unitario;
-			-- Insertar el detalle de la venta
-			INSERT INTO gestion_venta.DetalleVenta(id_producto, id_factura, cantidad, subtotal, precio_unitario)
-			VALUES (@id_producto, @id_factura, @cantidad, @subtotal_actual, @precio_unitario);
-			PRINT 'Venta insertada con éxito.';
-		END
-		ELSE
-		BEGIN
-			RAISERROR('El producto con ID %d no tiene un precio válido.', 16, 1, @id_producto);
-			RETURN;  -- Termina el procedimiento si el precio es NULL
-		END
-    END TRY
-    BEGIN CATCH
-        -- Manejo de errores
-        DECLARE @ErrorMessage NVARCHAR(4000);
-        SET @ErrorMessage = ERROR_MESSAGE();
-        RAISERROR(@ErrorMessage, 16, 1);
-    END CATCH
-END
-GO
-/****** Object:  StoredProcedure [gestion_venta].[Insertar_Factura]    Script Date: 13/11/2024 14:39:56 ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 -- ============================ SP INSERCION GESTION_VENTA ============================
-IF OBJECT_ID('[gestion_venta].[Insertar_Factura]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Insertar_Factura];
-GO
 
-CREATE PROCEDURE [gestion_venta].[Insertar_Factura]
-    @id_factura CHAR(11),
-    @id_tipo INT,
-    @id_cliente INT,
-    @fecha DATE,
-    @hora TIME(7),
-    @id_medio INT,
-    @id_empleado INT,
-    @id_sucursal INT
-AS
-BEGIN
-    BEGIN TRY
-	--Se agrega validacion para dar un mensaje intuitivo para el usuario
-		IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura AND activo = 1)
-		BEGIN
-			RAISERROR('La factura ingresada ya existe.',16,1)
-			RETURN;
-		END
-
-		IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura AND activo = 0)
-		BEGIN
-			UPDATE gestion_venta.Factura
-			SET activo = 1
-			WHERE id_factura = @id_factura and activo = 0
-
-			UPDATE gestion_venta.DetalleVenta
-			SET activo = 1 
-			WHERE id_factura = @id_factura and activo = 0;
-
-			PRINT 'La factura se dió de alta.';
-			RETURN;
-		END
-
-        -- Insertar la nueva factura en la tabla de facturas
-        INSERT INTO gestion_venta.Factura (id_factura, id_tipoFactura, id_cliente, fecha, hora, id_medioDePago, id_empleado, id_sucursal)
-        VALUES (@id_factura, @id_tipo, @id_cliente, @fecha, @hora, @id_medio, @id_empleado, @id_sucursal);
-		PRINT 'Factura insertada con éxito.';
-    END TRY
-    BEGIN CATCH
-        -- Manejo de errores
-        DECLARE @ErrorMessage NVARCHAR(4000);
-        SET @ErrorMessage = ERROR_MESSAGE();
-        RAISERROR(@ErrorMessage, 16, 1);
-    END CATCH
-END
-GO
 /****** Object:  StoredProcedure [gestion_venta].[Insertar_MedioDePago]    Script Date: 13/11/2024 14:39:56 ******/
 SET ANSI_NULLS ON
 GO
@@ -815,5 +710,129 @@ BEGIN
     VALUES (@nombre);
 
     PRINT 'Nuevo tipo de factura insertado con éxito.';
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_venta].[Insertar_Factura]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+IF OBJECT_ID('[gestion_venta].[Insertar_Factura]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Insertar_Factura];
+GO
+
+CREATE PROCEDURE [gestion_venta].[Insertar_Factura]
+    @id_factura CHAR(11),
+    @id_tipo INT,
+    @id_cliente INT,
+    @fecha DATE,
+    @hora TIME(7),
+    @id_medio INT,
+    @id_empleado INT,
+    @id_sucursal INT
+AS
+BEGIN
+    BEGIN TRY
+	--Se agrega validacion para dar un mensaje intuitivo para el usuario
+		IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura AND activo = 1)
+		BEGIN
+			RAISERROR('La factura ingresada ya existe.',16,1)
+			RETURN;
+		END
+
+		IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura AND activo = 0)
+		BEGIN
+			UPDATE gestion_venta.Factura
+			SET activo = 1
+			WHERE id_factura = @id_factura and activo = 0
+
+			UPDATE gestion_venta.DetalleVenta
+			SET activo = 1 
+			WHERE id_factura = @id_factura and activo = 0;
+
+			PRINT 'La factura se dió de alta.';
+			RETURN;
+		END
+
+        -- Insertar la nueva factura en la tabla de facturas
+        INSERT INTO gestion_venta.Factura (id_factura, id_tipoFactura, id_cliente, fecha, hora, id_medioDePago, id_empleado, id_sucursal)
+        VALUES (@id_factura, @id_tipo, @id_cliente, @fecha, @hora, @id_medio, @id_empleado, @id_sucursal);
+		PRINT 'Factura insertada con éxito.';
+    END TRY
+    BEGIN CATCH
+        -- Manejo de errores
+        DECLARE @ErrorMessage NVARCHAR(4000);
+        SET @ErrorMessage = ERROR_MESSAGE();
+        RAISERROR(@ErrorMessage, 16, 1);
+    END CATCH
+END
+GO
+
+/****** Object:  StoredProcedure [gestion_venta].[Insertar_DetalleVenta]    Script Date: 13/11/2024 14:39:56 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+IF OBJECT_ID('[gestion_venta].[Insertar_DetalleVenta]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Insertar_DetalleVenta];
+GO
+
+CREATE PROCEDURE [gestion_venta].[Insertar_DetalleVenta]
+    @id_producto INT,
+    @id_factura INT,
+    @cantidad INT
+AS
+BEGIN
+    -- Declaración de variables
+    DECLARE @subtotal_actual DECIMAL(8,2);
+    DECLARE @precio_unitario DECIMAL(7,2);
+
+    BEGIN TRY
+		IF NOT EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 1)
+		BEGIN
+			RAISERROR('La factura no existe.',16,1);
+			RETURN;
+		END
+
+		IF EXISTS(SELECT 1 FROM gestion_venta.DetalleVenta WHERE id_factura = @id_factura and activo = 0)
+		BEGIN
+			UPDATE gestion_venta.Factura
+			SET activo = 1
+			WHERE id = @id_factura and activo = 0
+
+			UPDATE gestion_venta.DetalleVenta
+			SET activo = 1 
+			WHERE id_factura = @id_factura and activo = 0;
+			PRINT 'La venta se dió de alta.';
+			RETURN;
+		END
+		-- Obtener el precio del producto
+		SELECT @precio_unitario = precio
+		FROM gestion_producto.Producto 
+		WHERE id = @id_producto;
+
+		IF @precio_unitario IS NOT NULL
+		BEGIN
+			-- Calcular el subtotal
+			SET @subtotal_actual = @cantidad * @precio_unitario;
+			-- Insertar el detalle de la venta
+			INSERT INTO gestion_venta.DetalleVenta(id_producto, id_factura, cantidad, subtotal, precio_unitario)
+			VALUES (@id_producto, @id_factura, @cantidad, @subtotal_actual, @precio_unitario);
+			PRINT 'Venta insertada con éxito.';
+		END
+		ELSE
+		BEGIN
+			RAISERROR('El producto con ID %d no tiene un precio válido.', 16, 1, @id_producto);
+			RETURN;  -- Termina el procedimiento si el precio es NULL
+		END
+    END TRY
+    BEGIN CATCH
+        -- Manejo de errores
+        DECLARE @ErrorMessage NVARCHAR(4000);
+        SET @ErrorMessage = ERROR_MESSAGE();
+        RAISERROR(@ErrorMessage, 16, 1);
+    END CATCH
 END
 GO
