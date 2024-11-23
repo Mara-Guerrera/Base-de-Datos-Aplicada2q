@@ -34,11 +34,12 @@ IF OBJECT_ID('[gestion_sucursal].[Modificar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Sucursal];
 GO
 CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
-    @id INT,
-    @nombre VARCHAR(30) = NULL,
-    @direccion VARCHAR(150) = NULL,
-    @horario VARCHAR(50) = NULL,
-    @telefono VARCHAR(15) = NULL
+	@id INT,
+	@nombre VARCHAR(30) = NULL,
+	@direccion VARCHAR(150) = NULL,
+	@horario VARCHAR(50) = NULL,
+	@telefono VARCHAR(15) = NULL,
+	@activo	BIT = NULL
 AS
 BEGIN
 	-- Verificar si la sucursal existe y está activa
@@ -51,21 +52,22 @@ BEGIN
 			RETURN;
 		END
 
-        -- Actualizar el registro
-        UPDATE gestion_sucursal.Sucursal
-        SET 
-            nombre = COALESCE(@nombre, nombre),
-            direccion = COALESCE(@direccion, direccion),
-            horario = COALESCE(@horario, horario),
-            telefono = COALESCE(@telefono, telefono)
-        WHERE id = @id;
+		-- Actualizar el registro
+		UPDATE gestion_sucursal.Sucursal
+		SET 
+			nombre = COALESCE(@nombre, nombre),
+			direccion = COALESCE(@direccion, direccion),
+			horario = COALESCE(@horario, horario),
+			telefono = COALESCE(@telefono, telefono),
+			activo = COALESCE(@activo, activo)
+		WHERE id = @id;
  
-        PRINT 'Registro de Sucursal actualizado exitosamente.';
-    END
-    ELSE
-    BEGIN
-        RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
-    END
+	PRINT 'Registro de Sucursal actualizado exitosamente.';
+	END
+	ELSE
+	BEGIN
+		RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
+	END
 END;
 GO
 
