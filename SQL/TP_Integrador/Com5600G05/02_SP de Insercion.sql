@@ -71,11 +71,7 @@ BEGIN
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE nombre = @nombre AND activo = 0)
 	BEGIN
 		UPDATE gestion_sucursal.Sucursal
-		SET
-			direccion = @direccion,
-			horario = @horario,
-			telefono = @telefono,
-			activo = 1
+		SET	activo = 1
 		WHERE nombre = @nombre AND activo = 0;
 		PRINT 'La sucursal se dió de alta.';
 		RETURN;
