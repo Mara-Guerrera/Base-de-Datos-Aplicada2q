@@ -74,7 +74,8 @@ BEGIN
 		SET
 			direccion = @direccion,
 			horario = @horario,
-			telefono = @telefono
+			telefono = @telefono,
+			activo = 1
 		WHERE nombre = @nombre AND activo = 0;
 		PRINT 'La sucursal se dió de alta.';
 		RETURN;
