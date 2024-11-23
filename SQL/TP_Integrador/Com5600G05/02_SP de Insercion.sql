@@ -47,7 +47,7 @@ CREATE PROCEDURE gestion_sucursal.Insertar_Sucursal
 	@id_empresa INT
 AS
 BEGIN
-	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empresa WHERE id = @id_empresa AND activo = 1)
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empresa WHERE id = @id_empresa AND activo = 1)
 	BEGIN
 		RAISERROR('Error: La empresa no existe.', 16, 1)
 		RETURN;
