@@ -50,7 +50,7 @@ BEGIN
 END
 GO
 
-CREATE TABLE gestion_venta.Tipo_Comprobante
+CREATE TABLE gestion_venta.TipoComprobante
 (
 	id		INT IDENTITY(1,1),
 	nombre	VARCHAR(40),
@@ -76,7 +76,7 @@ CREATE TABLE gestion_venta.NotaCredito
         id_factura          INT,
         fecha               DATE DEFAULT GETDATE(),
 		id_supervisor		INT,
-		id_tipo_comprobante	INT,
+		id_tipoComprobante	INT,
         id_sucursal			INT,
 		id_cliente			INT,
 		motivo				VARCHAR(40),
@@ -87,11 +87,11 @@ CREATE TABLE gestion_venta.NotaCredito
 		CONSTRAINT FK_ClienteID_Nota FOREIGN KEY (id_cliente) REFERENCES gestion_sucursal.Cliente(id),
 		CONSTRAINT FK_Sucursal_Nota FOREIGN KEY (id_sucursal) REFERENCES gestion_sucursal.Sucursal(id),
         CONSTRAINT FK_SupervisorID FOREIGN KEY (id_supervisor) REFERENCES gestion_sucursal.Empleado(id),
-		CONSTRAINT FK_tipo_comprobante FOREIGN KEY (id_tipo_comprobante) REFERENCES gestion_venta.Tipo_Comprobante
+		CONSTRAINT FK_tipoComprobante FOREIGN KEY (id_tipoComprobante) REFERENCES gestion_venta.TipoComprobante(id)
     )
 GO
 
-CREATE TABLE gestion_venta.Detalle_Nota
+CREATE TABLE gestion_venta.DetalleNota
     (
         id_item                  INT IDENTITY(1,1),
         id_nota					 INT,
@@ -110,19 +110,19 @@ CREATE TABLE gestion_venta.Detalle_Nota
 GO
 -- ============================ STORED PROCEDURES NOTA DE CREDITO ============================
 
-IF OBJECT_ID('[gestion_venta].[Generar_Nota_Credito]', 'P') IS NOT NULL
-	DROP PROCEDURE [gestion_venta].[Generar_Nota_Credito];
+IF OBJECT_ID('[gestion_venta].[Generar_NotaCredito]', 'P') IS NOT NULL
+	DROP PROCEDURE [gestion_venta].[Generar_NotaCredito];
 GO
-CREATE PROCEDURE gestion_venta.Generar_Nota_Credito
+CREATE PROCEDURE gestion_venta.Generar_NotaCredito
     @id_factura INT,
-    @id_tipo_comprobante INT,
+    @id_tipoComprobante INT,
     @id_sucursal INT,
     @id_cliente INT,
 	@motivo VARCHAR(40),
 	@id_supervisor INT
 AS
 BEGIN
-	IF @id_factura IS NULL AND @id_tipo_comprobante IS NULL AND @id_sucursal IS NULL
+	IF @id_factura IS NULL AND @id_tipoComprobante IS NULL AND @id_sucursal IS NULL
 	AND @id_cliente IS NULL	AND @motivo IS NULL AND @id_supervisor IS NULL
 	BEGIN
 		RAISERROR('Error: Debe ingresar todos los datos (ninguno puede ser nulo).', 16, 1)
@@ -136,7 +136,7 @@ BEGIN
         RETURN;
     END
 
-	IF NOT EXISTS (SELECT 1 FROM gestion_venta.Tipo_Comprobante WHERE id = @id_tipo_comprobante)
+	IF NOT EXISTS (SELECT 1 FROM gestion_venta.TipoComprobante WHERE id = @id_tipoComprobante)
 	BEGIN
 		RAISERROR('Error: Tipo de comprobante no válido.', 16, 1);
         RETURN;
@@ -171,16 +171,16 @@ BEGIN
 	DECLARE @fecha_emision DATE;
 	SET @fecha_emision = GETDATE();
     -- Insertar la nota de crédito
-    INSERT INTO gestion_venta.NotaCredito (id_factura, fecha,id_supervisor,id_tipo_comprobante,id_sucursal,id_cliente,motivo)
-    VALUES (@id_factura, @fecha_emision, @id_supervisor, @id_tipo_comprobante,@id_sucursal,@id_cliente,@motivo);
+    INSERT INTO gestion_venta.NotaCredito(id_factura, fecha,id_supervisor, id_tipo_comprobante, id_sucursal, id_cliente, motivo)
+    VALUES (@id_factura, @fecha_emision, @id_supervisor, @id_tipoComprobante, @id_sucursal, @id_cliente, @motivo);
     PRINT 'Nota de crédito generada exitosamente.';
 END
 GO
 
-IF OBJECT_ID('[gestion_venta].[Insertar_Detalle_Nota]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Insertar_Detalle_Nota];
+IF OBJECT_ID('[gestion_venta].[Insertar_DetalleNota]', 'P') IS NOT NULL
+    DROP PROCEDURE [gestion_venta].[Insertar_DetalleNota];
 GO
-CREATE PROCEDURE gestion_venta.Insertar_Detalle_Nota
+CREATE PROCEDURE gestion_venta.Insertar_DetalleNota
 	@id_nota INT,
 	@id_producto INT,
 	@cantidad INT,
@@ -195,17 +195,17 @@ BEGIN
 
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @id_nota)
 	BEGIN
-		RAISERROR('Error: La nota de crédito no es válida',16,1);
+		RAISERROR('Error: La nota de crédito no es válida', 16, 1);
 		RETURN;
 	END
 
 	IF NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
 	BEGIN
-		RAISERROR('Error: El producto no existe.',16,1);
+		RAISERROR('Error: El producto no existe.', 16, 1);
 		RETURN;
 	END
 
-	IF EXISTS (SELECT 1 FROM gestion_venta.Detalle_Nota WHERE id_nota = @id_nota AND id_producto = @id_producto)
+	IF EXISTS (SELECT 1 FROM gestion_venta.DetalleNota WHERE id_nota = @id_nota AND id_producto = @id_producto)
 	BEGIN
 		RAISERROR('Error: Ya hay un detalle con el mismo producto asociado a la nota de crédito.', 16, 1);
 		RETURN;
@@ -231,7 +231,7 @@ BEGIN
 	DECLARE @importe DECIMAL(8,2);
 	SET @importe = @valor_credito * @cantidad;
 
-	INSERT INTO gestion_venta.Detalle_Nota(id_nota, id_producto, cantidad, valor_credito, importe)
+	INSERT INTO gestion_venta.DetalleNota(id_nota, id_producto, cantidad, valor_credito, importe)
     VALUES (@id_nota, @id_producto, @cantidad, @valor_credito, @importe);
     PRINT 'Detalle de nota de crédito insertado.';
 END
@@ -239,4 +239,4 @@ GO
 
 -- Otorgar permisos al rol Supervisor
 GRANT INSERT, UPDATE ON gestion_venta.NotaCredito TO Supervisor;
-GRANT INSERT, UPDATE ON gestion_venta.Detalle_Nota TO Supervisor;
+GRANT INSERT, UPDATE ON gestion_venta.DetalleNota TO Supervisor;
