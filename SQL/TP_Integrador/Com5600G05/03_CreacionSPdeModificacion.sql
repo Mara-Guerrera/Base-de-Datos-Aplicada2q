@@ -22,8 +22,8 @@ Genere store procedures para manejar la inserción, modificado, borrado (si corr
 también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
 Los nombres de los store procedures NO deben comenzar con “SP”.
 Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
-en la creación de objetos. NO use el esquema “dbo”.*/
-
+en la creación de objetos. NO use el esquema “dbo”.
+*/
 -- ============================ STORED PROCEDURES MODIFICACION ============================
 USE Com5600G05
 GO
@@ -33,22 +33,29 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Sucursal];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Sucursal
 	@id INT,
 	@nombre VARCHAR(30) = NULL,
-	@direccion VARCHAR(150) = NULL,
+	@direccion VARCHAR(100) = NULL,
 	@horario VARCHAR(50) = NULL,
 	@telefono VARCHAR(15) = NULL,
 	@activo	BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la sucursal.', 16, 1);
+		RETURN;
+	END
 	-- Verificar si la sucursal existe y está activa
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id)
 	BEGIN
+
 		-- Validar el teléfono
-		IF @telefono IS NOT NULL AND @telefono NOT LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+		IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 		BEGIN
-			RAISERROR('Error: El telefono no tiene un formato válido: XXXX-XXXX', 16, 1);
+			RAISERROR('Error: El formato del teléfono no es válido.', 16, 1);
 			RETURN;
 		END
 
@@ -62,11 +69,11 @@ BEGIN
 			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
  
-	PRINT 'Registro de Sucursal actualizado exitosamente.';
+		PRINT 'Registro de Sucursal actualizado exitosamente.';
 	END
 	ELSE
 	BEGIN
-		RAISERROR('No se encontró una Sucursal con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró una Sucursal con ID %d.', 16, 1, @id);
 	END
 END;
 GO
@@ -74,12 +81,19 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Turno];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Turno
-	@id				INT,
-	@descripcion	VARCHAR(16) = NULL,
-	@activo			BIT = NULL
+	@id INT,
+	@descripcion VARCHAR(16) = NULL,
+	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del turno.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el turno existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id)
 	BEGIN
@@ -109,12 +123,18 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cargo]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cargo];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Cargo
     @id INT,
     @nombre VARCHAR(20) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del cargo.', 16, 1);
+		RETURN;
+	END
 	-- Verificar si el cargo existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id)
 	BEGIN
@@ -144,6 +164,7 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Empleado]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Empleado];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Empleado
     @id					INT,
 	@legajo				INT = NULL,
@@ -160,6 +181,12 @@ CREATE PROCEDURE gestion_sucursal.Modificar_Empleado
 	@activo				BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del empleado.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el empleado existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id AND activo = 1)
     BEGIN
@@ -182,35 +209,34 @@ BEGIN
 			RETURN;
 		END
 
-		IF @cuil IS NOT NULL AND @cuil NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		IF @cuil IS NOT NULL AND (gestion_validacion.Validar_Cuil(@cuil) = 0)
 		BEGIN
-			RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
+			RAISERROR('Error: El formato del CUIL no es válido.', 16, 1);
 			RETURN;
 		END
 		-- Verificar si el correo electronico tiene un formato básico válido
-		IF ( @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0) )
-		OR ( @email_empresa IS NOT NULL AND (PATINDEX('%@%.%', @email_empresa) = 0 OR CHARINDEX(' ', @email_empresa) > 0) )
+		IF (@email IS NOT NULL AND gestion_validacion.Validar_Email(@email) = 0)
+		OR (@email_empresa IS NOT NULL AND gestion_validacion.Validar_Email(@email_empresa) = 0)
 		BEGIN
-			RAISERROR('Error: El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto)
-						o contienen espacios.', 16, 1);
+			RAISERROR('Error: El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto).', 16, 1);
 			RETURN;
 		END
 
 		-- Los campos no nulos se modifican, el resto quedan con los datos iniciales
 		UPDATE gestion_sucursal.Empleado
 		SET
-			legajo = ISNULL(@legajo, legajo),
-			nombre = ISNULL(@nombre, nombre),
-			apellido = ISNULL(@apellido, apellido),
-			dni = ISNULL(@dni, dni),
-			direccion = ISNULL(@direccion, direccion),
-			cuil = ISNULL(@cuil, cuil),
-			email = ISNULL(@email, email),
-			email_empresa = ISNULL(@email_empresa, email_empresa),
-			id_cargo = ISNULL(@id_cargo, id_cargo),
-			id_sucursal = ISNULL(@id_sucursal, id_sucursal),
-			id_turno = ISNULL(@id_turno, id_turno),
-			activo = ISNULL(@activo, activo)
+			legajo = COALESCE(@legajo, legajo),
+			nombre = COALESCE(@nombre, nombre),
+			apellido = COALESCE(@apellido, apellido),
+			dni = COALESCE(@dni, dni),
+			direccion = COALESCE(@direccion, direccion),
+			cuil = COALESCE(@cuil, cuil),
+			email = COALESCE(@email, email),
+			email_empresa = COALESCE(@email_empresa, email_empresa),
+			id_cargo = COALESCE(@id_cargo, id_cargo),
+			id_sucursal = COALESCE(@id_sucursal, id_sucursal),
+			id_turno = COALESCE(@id_turno, id_turno),
+			activo = COALESCE(@activo, activo)
 		WHERE id = @id
 
         -- Mensaje de confirmación si hubo al menos un cambio
@@ -218,7 +244,7 @@ BEGIN
     END
     ELSE
     BEGIN
-        RAISERROR('No se encontró un Empleado con ID %d.', 16, 1, @id);
+        RAISERROR('Error: No se encontró un Empleado con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -226,12 +252,19 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_TipoCliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_TipoCliente];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_TipoCliente
 	@id INT,
 	@descripcion VARCHAR(10) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de cliente.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el tipo de cliente existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id and activo = 1)
 	BEGIN
@@ -251,7 +284,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un TipoCliente con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Tipo de cliente con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -259,13 +292,20 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Genero]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Genero];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Genero
 	@id INT,
 	@descripcion VARCHAR(10) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
-	-- Verificar si el género existe
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del género.', 16, 1);
+		RETURN;
+	END
+
+	-- Verificar si el genero existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id and activo = 1)
 	BEGIN
 		IF @descripcion IS NOT NULL AND PATINDEX('%[^a-zA-Z ]%', @descripcion) > 0
@@ -276,7 +316,7 @@ BEGIN
 		-- Actualizar el registro
 		UPDATE gestion_sucursal.Genero
 		SET
-			descripcion = COALESCE(@descripcion, descripcion),
+			descripcion = COALESCE(@descripcion, descripcion),	
 			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
 
@@ -284,7 +324,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un Genero con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Género con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -292,19 +332,27 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Modificar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Modificar_Cliente];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Modificar_Cliente
 	@id INT,
 	@nombre VARCHAR(50) = NULL,
 	@apellido VARCHAR(50) = NULL,
 	@id_tipo INT = NULL,
 	@id_genero INT = NULL,
-	@dni BIGINT,
+	@dni BIGINT = NULL,
+	@domicilio VARCHAR(100) = NULL,
 	@cuit CHAR(13) = NULL,
 	@telefono VARCHAR(15) = NULL,
-	@email VARCHAR(80) = NULL,
+	@email VARCHAR(60) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del cliente.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el cliente existe
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id)
 	BEGIN
@@ -324,7 +372,7 @@ BEGIN
 		-- Validar id_tipo (referencia a TipoCliente)
 		IF @id_tipo IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
 		BEGIN
-			RAISERROR('Error: El Tipo de Cliente especificado no existe.', 16, 1);
+			RAISERROR('Error: El Tipo de cliente especificado no existe.', 16, 1);
 			RETURN;
 		END
 
@@ -335,29 +383,28 @@ BEGIN
 			RETURN;
 		END
 
-		-- Validar el formato de CUIT
-		IF @cuit IS NOT NULL AND @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+		IF @domicilio IS NOT NULL AND PATINDEX('%[^a-zA-Z0-9áéíóúÁÉÍÓÚ .-]%', @domicilio) > 0
 		BEGIN
-			RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
+			RAISERROR('Error: La dirección contiene caracteres no permitidos.', 16, 1);
 			RETURN;
 		END
 
-		-- Validar el teléfono
-		IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
+		IF @cuit IS NOT NULL AND (gestion_validacion.Validar_Cuil(@cuit) = 0)
 		BEGIN
-			RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
+			RAISERROR('Error: El formato del CUIT no es válido.', 16, 1);
 			RETURN;
 		END
-		ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
+	
+		IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 		BEGIN
-			RAISERROR('Error: Formato de número inválido.', 16, 1);
+			RAISERROR('Error: El formato del teléfono no es válido.', 16, 1);
 			RETURN;
 		END
-
-		-- Validar el formato del correo electrónico
-		IF @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0)
+	
+		-- Validación del email (si se proporciona)
+		IF @email IS NOT NULL AND (gestion_validacion.Validar_Email(@email) = 0)
 		BEGIN
-			RAISERROR('Error: El email no tiene un formato básico válido (debe contener un "@" y un punto) o contiene espacios.', 16, 1);
+			RAISERROR('Error: El email no tiene un formato válido.', 16, 1);
 			RETURN;
 		END
 
@@ -368,8 +415,9 @@ BEGIN
 			apellido = COALESCE(@apellido, apellido),
 			id_tipo = COALESCE(@id_tipo, id_tipo),
 			id_genero = COALESCE(@id_genero, id_genero),
+			direccion = COALESCE(@domicilio, direccion),
 			dni = COALESCE(@dni, dni),
-			cuit = COALESCE(@cuit, cuit),
+			cuit = COALESCE(@cuit , cuit),
 			telefono = COALESCE(@telefono, telefono),
 			email = COALESCE(@email, email),
 			activo = COALESCE(@activo, activo)
@@ -388,31 +436,30 @@ GO
 IF OBJECT_ID('[gestion_producto].[Modificar_Proveedor]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Proveedor];
 GO
+
 CREATE PROCEDURE gestion_producto.Modificar_Proveedor
-	@id			INT,
-	@nombre		VARCHAR(100) = NULL,
-	@telefono	VARCHAR(15) = NULL,
-	@activo		BIT = NULL
+	@id INT,
+	@nombre VARCHAR(100) = NULL,
+	@telefono VARCHAR(15) = NULL,	
+	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del proveedor.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el proveedor existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id)
 	BEGIN
-		-- Validar el teléfono
-		IF @telefono IS NOT NULL
+		--Si el telefono se proporciono, se verifica que tenga un formato valido--
+		IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 		BEGIN
-			IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
-			BEGIN
-				RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
-				RETURN;
-			END
-			ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
-			BEGIN
-				RAISERROR('Error: Formato de número inválido.', 16, 1);
-				RETURN;
-			END
+			RAISERROR('El formato del teléfono no es válido.', 16, 1);
+			RETURN;
 		END
-
+	
 		-- Actualizar el registro
 		UPDATE gestion_producto.Proveedor
 		SET 
@@ -433,12 +480,19 @@ GO
 IF OBJECT_ID('[gestion_producto].[Modificar_TipoProducto]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_TipoProducto];
 GO
+
 CREATE PROCEDURE gestion_producto.Modificar_TipoProducto
 	@id INT,
 	@nombre VARCHAR(40) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de producto.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el tipo de producto existe
     IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id and activo = 1)
     BEGIN
@@ -449,11 +503,11 @@ BEGIN
 		WHERE id = @id;
 
         -- Confirmación si hubo un cambio
-        PRINT 'Actualización de TipoProducto completada.';
+        PRINT 'Actualización de Tipo de producto completada.';
     END
     ELSE
     BEGIN
-        RAISERROR('Error: No se encontró un TipoProducto con ID %d.', 16, 1, @id);
+        RAISERROR('Error: No se encontró un Tipo de producto con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -461,20 +515,27 @@ GO
 IF OBJECT_ID('[gestion_producto].[Modificar_Categoria]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Categoria];
 GO
-CREATE  PROCEDURE gestion_producto.Modificar_Categoria
+
+CREATE PROCEDURE gestion_producto.Modificar_Categoria
 	@id INT,
 	@nombre VARCHAR(50) = NULL,
 	@id_tipoProducto INT = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la categoría.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si la categoría existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id)
 	BEGIN
 		-- Validar id_tipoProducto (referencia a TipoProducto)
 		IF @id_tipoProducto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
 		BEGIN
-			RAISERROR('Error: El Tipo de Producto especificado no existe.', 16, 1);
+			RAISERROR('Error: El Tipo de producto especificado no existe.', 16, 1);
 			RETURN;
 		END
 
@@ -498,7 +559,8 @@ GO
 IF OBJECT_ID('[gestion_producto].[Modificar_Producto]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_producto].[Modificar_Producto];
 GO
-CREATE  PROCEDURE gestion_producto.Modificar_Producto
+
+CREATE PROCEDURE gestion_producto.Modificar_Producto
 	@id INT,
 	@descripcion VARCHAR(50) = NULL,
 	@precio DECIMAL(7,2) = NULL,
@@ -510,6 +572,12 @@ CREATE  PROCEDURE gestion_producto.Modificar_Producto
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del producto.', 16, 1);
+		RETURN;
+	END
+
 	-- Verificar si el producto existe
 	IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id)
 	BEGIN
@@ -551,7 +619,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('Error: No se encontró un Producto con ID %d.', 16, 1, @id)
+		RAISERROR('No se encontró un Producto con ID %d.', 16, 1, @id)
 	END
 END;
 GO
@@ -561,12 +629,19 @@ GO
 IF OBJECT_ID('[gestion_venta].[Modificar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Modificar_MedioDePago];
 GO
+
 CREATE PROCEDURE gestion_venta.Modificar_MedioDePago
     @id INT,
     @descripcion VARCHAR(30) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Medio de pago.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el medio de pago existe
     IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id and activo = 1)
     BEGIN
@@ -576,11 +651,11 @@ BEGIN
 			activo = COALESCE(@activo, activo)
 		WHERE id = @id;
         -- Confirmación si hubo un cambio
-        PRINT 'Actualización de MedioDePago completada.';
+        PRINT 'Actualización de Medio de pago completada.';
     END
     ELSE
     BEGIN
-		RAISERROR('Error: No se encontró un MedioDePago con ID %d.', 16, 1, @id)
+		RAISERROR('Error: No se encontró un Medio de pago con ID %d.', 16, 1, @id)
     END
 END;
 GO
@@ -588,12 +663,19 @@ GO
 IF OBJECT_ID('[gestion_venta].[Modificar_TipoFactura]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_TipoFactura];
 GO
+
 CREATE PROCEDURE gestion_venta.Modificar_TipoFactura
     @id INT,
     @nombre CHAR(1) = NULL,
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de factura.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el tipo de factura existe
     IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id and activo = 1)
     BEGIN
@@ -607,7 +689,7 @@ BEGIN
             WHERE id = @id;
 
 		-- Confirmación si hubo un cambio
-			PRINT 'Actualización de TipoFactura completada.';
+			PRINT 'Actualización de Tipo de factura completada.';
         END
         ELSE
         BEGIN
@@ -616,7 +698,7 @@ BEGIN
     END
     ELSE
     BEGIN
-		RAISERROR('Error: No se encontró un TipoFactura con ID %d.', 16, 1, @id);
+		RAISERROR('Error: No se encontró un Tipo de factura con ID %d.', 16, 1, @id);
     END
 END;
 GO
@@ -624,8 +706,10 @@ GO
 IF OBJECT_ID('[gestion_venta].[Modificar_Factura]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_Factura];
 GO
+
 CREATE PROCEDURE gestion_venta.Modificar_Factura
-    @id CHAR(11),
+    @id INT,
+	@id_factura CHAR(11),
     @id_tipoFactura INT = NULL,
     @id_cliente INT = NULL,
     @fecha DATE = NULL,
@@ -636,6 +720,12 @@ CREATE PROCEDURE gestion_venta.Modificar_Factura
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la factura.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si la factura existe
     IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id)
     BEGIN
@@ -656,7 +746,7 @@ BEGIN
         -- Validar id_medioDePago
         IF @id_medioDePago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago)
         BEGIN
-            RAISERROR('Error: El Medio de Pago especificado no existe.', 16, 1);
+            RAISERROR('Error: El Medio de pago especificado no existe.', 16, 1);
             RETURN;
         END
 
@@ -673,10 +763,18 @@ BEGIN
             RAISERROR('Error: La Sucursal especificada no existe.', 16, 1);
             RETURN;
         END
+		
+		-- Validar formato de id_factura
+		IF @id_factura IS NOT NULL AND @id_factura NOT LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'
+		BEGIN
+            RAISERROR('Error: El identificador de la factura no tiene un formato válido.', 16, 1)
+            RETURN;
+        END
 
-        -- Actualizar el registro, al hacerlo se activa
+        -- Actualizar el registro
         UPDATE gestion_venta.Factura
         SET 
+			id_factura = COALESCE(@id_factura, id_factura),
             id_tipoFactura = COALESCE(@id_tipoFactura, id_tipoFactura),
             id_cliente = COALESCE(@id_cliente, id_cliente),
             fecha = COALESCE(@fecha, fecha),
@@ -684,14 +782,14 @@ BEGIN
             id_medioDePago = COALESCE(@id_medioDePago, id_medioDePago),
             id_empleado = COALESCE(@id_empleado, id_empleado),
             id_sucursal = COALESCE(@id_sucursal, id_sucursal),
-            activo = COALESCE(@activo, activo)
-        WHERE id = @id;
+			activo = COALESCE(@activo, activo)
+         WHERE id = @id;
 
         PRINT 'Registro de Factura actualizado exitosamente.';
     END
     ELSE
     BEGIN
-        RAISERROR('No se encontró una Factura con el ID especificado.', 16, 1);
+        RAISERROR('Error: No se encontró una Factura con el ID especificado.', 16, 1);
     END
 END;
 GO
@@ -699,9 +797,10 @@ GO
 IF OBJECT_ID('[gestion_venta].[Modificar_DetalleVenta]', 'P') IS NOT NULL
 	DROP PROCEDURE [gestion_venta].[Modificar_DetalleVenta];
 GO
+
 CREATE PROCEDURE gestion_venta.Modificar_DetalleVenta
     @id INT,
-    @id_factura CHAR(11),
+    @id_factura INT,
     @id_producto INT = NULL,
     @cantidad INT = NULL,
     @subtotal DECIMAL(8,2) = NULL,
@@ -709,13 +808,19 @@ CREATE PROCEDURE gestion_venta.Modificar_DetalleVenta
 	@activo BIT = NULL
 AS
 BEGIN
+	IF @id IS NULL AND @id_factura IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del detalle de venta y el ID de la factura.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el detalle de venta existe
     IF EXISTS (SELECT 1 FROM gestion_venta.DetalleVenta WHERE id = @id AND id_factura = @id_factura)
     BEGIN
         -- Validar id_producto
         IF @id_producto IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto)
         BEGIN
-            RAISERROR('Error: El Producto especificado no existe.', 16, 1);
+            RAISERROR('El Producto especificado no existe.', 16, 1);
             RETURN;
         END
 
@@ -747,7 +852,7 @@ BEGIN
             RETURN;
         END
 
-        -- Actualizar el registro, al hacerlo se activa
+        -- Actualizar el registro
         UPDATE gestion_venta.DetalleVenta
         SET 
             id_producto = COALESCE(@id_producto, id_producto),
@@ -765,142 +870,149 @@ BEGIN
     END
 END;
 GO
-	
+-- ============================ STORED PROCEDURES OBTENCION DE ID ============================
+
 IF OBJECT_ID('[gestion_sucursal].[Obtener_Id_Sucursal]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Sucursal];
+	DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Sucursal];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Obtener_Id_Sucursal 
 	@nombreSucursal VARCHAR(30),
 	@id INT OUTPUT
 AS
 BEGIN
 	-- Inicializamos el valor del id como NULL
-    SET @id = NULL;
+	SET @id = NULL;
 
-    -- Buscar el id del producto
-    SELECT @id = id
-    FROM gestion_sucursal.Sucursal
-    WHERE nombre = @nombreSucursal;
+	-- Buscar el id del producto
+	SELECT @id = id
+	FROM gestion_sucursal.Sucursal
+	WHERE nombre = @nombreSucursal;
 
-    -- Si no se encuentra el producto, el valor de @id será NULL
-    IF @id IS NULL
-    BEGIN
-        PRINT 'Producto no encontrado.';
-    END
+	-- Si no se encuentra el producto, el valor de @id será NULL
+	IF @id IS NULL
+	BEGIN
+		PRINT 'Producto no encontrado.';
+	END
 END
 GO
+
 IF OBJECT_ID('[gestion_producto].[Obtener_Id_Producto]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Obtener_Id_Producto];
+	DROP PROCEDURE [gestion_producto].[Obtener_Id_Producto];
 GO
+
 CREATE PROCEDURE gestion_producto.Obtener_Id_Producto
-    @nombreProducto VARCHAR(100),
-    @id INT OUTPUT
+	@nombreProducto VARCHAR(100),
+	@id INT OUTPUT
 AS
 BEGIN
-    -- Inicializamos el valor del id como NULL
-    SET @id = NULL;
+	-- Inicializamos el valor del id como NULL
+	SET @id = NULL;
 
-    -- Buscar el id del producto
-    SELECT @id = id
-    FROM gestion_producto.Producto
-    WHERE descripcion = @nombreProducto;
+	-- Buscar el id del producto
+	SELECT @id = id
+	FROM gestion_producto.Producto
+	WHERE descripcion = @nombreProducto;
 
-    -- Si no se encuentra el producto, el valor de @id será NULL
-    IF @id IS NULL
-    BEGIN
-        PRINT 'Producto no encontrado.';
-    END
+	-- Si no se encuentra el producto, el valor de @id será NULL
+	IF @id IS NULL
+	BEGIN
+		PRINT 'Producto no encontrado.';
+	END
 END
 GO
+
 IF OBJECT_ID('[gestion_producto].[Obtener_Id_Categoria]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Obtener_Id_Categoria];
+	DROP PROCEDURE [gestion_producto].[Obtener_Id_Categoria];
 GO
+
 CREATE PROCEDURE gestion_producto.Obtener_Id_Categoria
-    @nombreCategoria VARCHAR(50),
+	@nombreCategoria VARCHAR(50),
 	@id_tipoProducto INT,
-    @id INT OUTPUT
+	@id INT OUTPUT
 AS
 BEGIN
+	SET @id = NULL;
 
-    SET @id = NULL;
+	SELECT @id = id
+	FROM gestion_producto.Categoria
+	WHERE nombre = @nombreCategoria AND id_tipoProducto = @id_tipoProducto
 
-    SELECT @id = id
-    FROM gestion_producto.Categoria
-    WHERE nombre = @nombreCategoria
-	AND id_tipoProducto = @id_tipoProducto
-
- 
-    IF @id IS NULL
-    BEGIN
-        PRINT 'Categoría no encontrada.';
-    END
+	IF @id IS NULL
+	BEGIN
+		PRINT 'Categoría no encontrada.';
+	END
 END
 GO
+
 IF OBJECT_ID('[gestion_producto].[Obtener_Id_Tipo]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_producto].[Obtener_Id_Tipo];
+	DROP PROCEDURE [gestion_producto].[Obtener_Id_Tipo];
 GO
+
 CREATE PROCEDURE gestion_producto.Obtener_Id_Tipo
-    @nombreTipo VARCHAR(40),
-    @id INT OUTPUT
+	@nombreTipo VARCHAR(40),
+	@id INT OUTPUT
 AS
 BEGIN
-  
-    SET @id = NULL;
+	SET @id = NULL;
 
-    SELECT @id = id
-    FROM gestion_producto.TipoProducto
-    WHERE nombre = @nombreTipo;
+	SELECT @id = id
+	FROM gestion_producto.TipoProducto
+	WHERE nombre = @nombreTipo;
 
-    IF @id IS NULL
-    BEGIN
-        PRINT 'Tipo de producto no encontrado.';
-    END
+	IF @id IS NULL
+	BEGIN
+		PRINT 'Tipo de producto no encontrado.';
+	END
 END
 GO
+
 IF OBJECT_ID('[gestion_sucursal].[Obtener_Id_Cliente]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Cliente];
+	DROP PROCEDURE [gestion_sucursal].[Obtener_Id_Cliente];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Obtener_Id_Cliente
-    @dni BIGINT,
-    @id INT OUTPUT
+	@dni BIGINT,
+	@id INT OUTPUT
 AS
 BEGIN
-    -- Inicializamos el valor del id como NULL
-    SET @id = NULL;
+	-- Inicializamos el valor del id como NULL
+	SET @id = NULL;
 
-    -- Buscar el id del cliente
-    SELECT @id = id
-    FROM gestion_sucursal.Cliente
-    WHERE dni = @dni;
+	-- Buscar el id del cliente
+	SELECT @id = id
+	FROM gestion_sucursal.Cliente
+	WHERE dni = @dni;
 
-    -- Si no se encuentra el cliente, el valor de @id será NULL
-    IF @id IS NULL
-    BEGIN
-        RAISERROR('Error: El cliente con DNI %I64d no existe.', 16, 1, @dni);
-    END
+	-- Si no se encuentra el cliente, el valor de @id será NULL
+	IF @id IS NULL
+	BEGIN
+		RAISERROR('Error: El cliente con DNI %I64d no existe.', 16, 1, @dni);
+	END
 END
 GO
 
 IF OBJECT_ID('[gestion_venta].[Obtener_Id_Factura]', 'P') IS NOT NULL
-    DROP PROCEDURE [gestion_venta].[Obtener_Id_Factura];
+	DROP PROCEDURE [gestion_venta].[Obtener_Id_Factura];
 GO
+
 CREATE PROCEDURE gestion_venta.Obtener_Id_Factura
-    @id_factura CHAR(11),
-    @id INT OUTPUT
+	@id_factura CHAR(11),
+	@id INT OUTPUT
 AS
 BEGIN
-    -- Inicializamos el valor del id como NULL
-    SET @id = NULL;
+	-- Inicializamos el valor del id como NULL
+	SET @id = NULL;
 
-    -- Buscar el id de la factura
-    SELECT @id = id
-    FROM gestion_venta.Factura
-    WHERE id_factura = @id_factura;
+	-- Buscar el id de la factura
+	SELECT @id = id
+	FROM gestion_venta.Factura
+	WHERE id_factura = @id_factura;
 
-    -- Si no se encuentra la factura, el valor de @id será NULL
+	-- Si no se encuentra la factura, el valor de @id será NULL
 	IF @id IS NULL
-    BEGIN
-        RAISERROR('Error: La factura con id %s no existe.', 16, 1, @id_factura);
-    END
+	BEGIN
+		RAISERROR('Error: La factura con id %s no existe.', 16, 1, @id_factura);
+	END
 END
 GO
