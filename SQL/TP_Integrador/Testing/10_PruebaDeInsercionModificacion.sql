@@ -1,132 +1,168 @@
+-- ============================ LOTE DE PRUEBAS DE STORED PROCEDURES ============================
 USE Com5600G05
 GO
+-- ============================ LOTE POSTERIOR A IMPORTACION ============================
 
 -- ERROR: Caso de sucursal que ya existe
-EXEC [gestion_sucursal].Insertar_Sucursal 
+EXEC gestion_sucursal.Insertar_Sucursal 
     'Ramos Mejia', 
     'Av. de Mayo 791, B1704 Padua, Provincia de Buenos Aires',
     'L a V 8 am a 8 pm.',
-    '5555-5552','20-12345681-1';
-
-SELECT * FROM gestion_sucursal.Sucursal
+    '5555-5554', 1
 GO
-
--- Caso de sucursal que no existe: Error en el formato del telefono
-EXEC [gestion_sucursal].Insertar_Sucursal 
-    'Patricios',
-	'Avenida Caseros y Avenida Directorio',
-	'L a V 8 am a 8 pm.',
-    '0800-555-5552',
-	'20-12345555-2';
-GO
-
 --Modificaciones en sucursal--
-EXEC gestion_sucursal.Modificar_Sucursal 1,@cuit='23-45678912-4'
-EXEC gestion_sucursal.Modificar_Sucursal 2,@cuit='24-45678912-8'
-EXEC gestion_sucursal.Modificar_Sucursal 3,@cuit='20-45698912-8'
--- Inserción de Turnos, Cargo y Empleados
-EXEC gestion_sucursal.Insertar_Turno 'TN';
+EXEC gestion_sucursal.Modificar_Sucursal @id = 1, @telefono = '6891-2244'
+GO
+EXEC gestion_sucursal.Modificar_Sucursal @id = 1, @telefono = '5555-5551'
+GO
+
+-- ============================ Inserción de Turnos, Cargo y Empleados ============================
+
+EXEC gestion_sucursal.Insertar_Turno 'TN'
+GO
 EXEC gestion_sucursal.Borrar_Turno 4
+GO
 
-EXEC gestion_sucursal.Insertar_Cargo 'Vendedor';
+EXEC gestion_sucursal.Insertar_Cargo 'Vendedor'
+GO
 EXEC gestion_sucursal.Borrar_Cargo 4
+GO
 
+--Inserto un empleado nuevo--
 EXEC gestion_sucursal.Insertar_Empleado 
     204517, 'María', 'Maggio', 45289653, 
     'Av. Mayo 1050', '27-28033514-8', 
     'maria@gmail.com', 'maria_trabajo@empresa.com', 
     1, 1, 1;
+GO
 
+--Lo doy de baja--
+EXEC gestion_sucursal.Borrar_Empleado 16
+GO
 
--- Inserción de líneas de productos
-EXEC gestion_producto.Insertar_Tipo_Producto 'Especias';
+-- ============================ Inserción de líneas de productos ============================
 
--- Inserción de categorías
-EXEC gestion_producto.Insertar_Categoria 'Lácteos', 3;
-EXEC gestion_producto.Insertar_Categoria 'Bebidas', 1;
+EXEC gestion_producto.Insertar_Tipo_Producto 'Especias'
+GO
 
--- Inserción de tipo de factura y género
-EXEC gestion_venta.Insertar_TipoFactura 'D';
-EXEC gestion_sucursal.Insertar_Genero 'Otro';
+-- ============================ Inserción de categorías ============================
 
--- Inserción de proveedor
+EXEC gestion_producto.Insertar_Categoria 'Lácteos', 3
+GO
+EXEC gestion_producto.Insertar_Categoria 'Bebidas', 1
+GO
+
+-- ============================ Inserción de tipo de factura y género ============================
+
+EXEC gestion_venta.Insertar_TipoFactura 'D'
+GO
+EXEC gestion_sucursal.Insertar_Genero 'Otro'
+GO
+
+-- ============================ Inserción de proveedor ============================
 EXEC gestion_producto.Insertar_Proveedor 'Proveeduría Delta';
+GO
 
--- Pruebas de inserción de producto, con obtención de id para posterior actualización
+-- ============== Pruebas de inserción de producto, con obtención de id para posterior actualización ==============
+
 DECLARE @id INT
 EXEC gestion_producto.Insertar_Producto 
     'Queso de cabra curado', 12.50, 48, 25, 'kg', NULL, 3;
+GO
 
 -- Obtener el id del producto para actualizar
 EXEC gestion_producto.Obtener_Id_Producto 
     @nombreProducto = 'Queso de cabra curado', 
     @id = @id OUTPUT;
-
+GO
 -- Modificar el producto usando el id obtenido
 EXEC gestion_producto.Modificar_Producto 
     @id, @precio = 15.6, @precio_ref = 30;
-
+GO
 --Borrar producto--
 EXEC gestion_producto.Borrar_Producto @id
+GO
 SELECT * FROM gestion_producto.Producto WHERE id = @id
+GO
 
 -- Validar modificación
 SELECT * FROM gestion_producto.Producto 
 WHERE id = @id;
 
--- Obtener y modificar sucursal
+-- ============================ Obtener y modificar sucursal ============================
+
 EXEC gestion_sucursal.Obtener_Id_Sucursal 
     @nombreSucursal = 'San Justo', 
     @id = @id OUTPUT;
-
+GO
 SELECT id,nombre FROM gestion_sucursal.Sucursal
 WHERE id = @id
-
+GO
 EXEC gestion_sucursal.Modificar_Sucursal 
     @id, @nombre = 'Yangon';
-
+GO
 SELECT id,nombre FROM gestion_sucursal.Sucursal
 WHERE id = @id
+GO
 
 EXEC gestion_sucursal.Modificar_Sucursal 
     @id, @nombre = 'San Justo';
+GO
 
-
--- Obtener y modificar categoría de producto
+-- ============================ Obtener y modificar categoría de producto ============================
 
 EXEC gestion_producto.Obtener_Id_Categoria 
     'labios', 11, @id = @id OUTPUT
+GO
 
 -- Caso de error: Modificar categoría con tipo de producto inválido
 EXEC gestion_producto.Modificar_Categoria 
     @id, @id_tipoProducto = 11;
+GO
 
 -- Obtener tipo de producto y modificar categoría correctamente
 EXEC gestion_producto.Obtener_Id_Tipo 
     'Perfumería', @id = @id OUTPUT;
+GO
 
 EXEC gestion_producto.Modificar_Categoria 
     @id, @id_tipoProducto = @id;
+GO
 
---Modificación de Tipo de producto
+-- ============================ Modificación de Tipo de producto ============================
+
 EXEC [gestion_producto].Modificar_TipoProducto 1, 'Bebidas MODIFICADO'
+GO
 EXEC [gestion_producto].Modificar_TipoProducto 1, 'Bebidas'
+GO
 
+-- ============================ Modificación de Medio de Pago ============================
 
---Modificación de Medio de Pago
 EXEC gestion_venta.Modificar_MedioDePago 1, 'Tarjeta MODIFICADA'
+GO
 EXEC gestion_venta.Modificar_MedioDePago 1, 'Tarjeta Crédito'
+GO
 
+--============================ Modificación de Tipo Factura ============================
 
---Modificación de Tipo Factura
 EXEC gestion_venta.Modificar_TipoFactura 2, 'F'
+GO
 EXEC gestion_venta.Modificar_TipoFactura 2, 'B'
+GO
+
+-- ============================ PRUEBAS DE CLIENTES ============================
+
 --Inserción de géneros--
 EXEC gestion_sucursal.Insertar_Genero 'Female'
+GO
 EXEC gestion_sucursal.Insertar_Genero 'Male'
+GO
+
 --Inserción de tipos de clientes--
 EXEC gestion_sucursal.Insertar_TipoCliente 'Normal'
+GO
 EXEC gestion_sucursal.Insertar_TipoCliente 'Member'
+GO
 
 --Inserción lote de clientes--
 
@@ -146,30 +182,38 @@ VALUES
 --Modificación de cliente--
 DECLARE @id_cliente INT;
 EXEC gestion_sucursal.Obtener_Id_Cliente @dni = 67890123, @id = @id_cliente OUTPUT;
-
+GO
 SELECT * FROM gestion_sucursal.Cliente WHERE id = @id_cliente
-
-EXEC gestion_sucursal.Modificar_Cliente @id_cliente,@id_genero = 1
-
+GO
+EXEC gestion_sucursal.Modificar_Cliente @id_cliente, @id_genero = 1
+GO
 SELECT * FROM gestion_sucursal.Cliente WHERE id = @id_cliente
+GO
 
+-- ============================ Borrado de categoría ============================
 
---Borrado de categoría--
-EXEC gestion_producto.Obtener_Id_Categoria 'aceite_vinagre_y_sal',2,@id = @id OUTPUT
+EXEC gestion_producto.Obtener_Id_Categoria 'aceite_vinagre_y_sal', 2, @id = @id OUTPUT
+GO
 EXEC gestion_producto.Borrar_Categoria @id
+GO
 
 --Verificación--
 SELECT nombre, id_tipoProducto, activo
 FROM gestion_producto.Categoria 
 WHERE nombre = 'aceite_vinagre_y_sal' AND id_tipoProducto = 2
 
---Inserción factura--
-EXEC gestion_venta.Insertar_Factura '752-68-8428', 1, 2, '2024-11-15', '14:30:00', 2, 5, 3;
+-- ============================ Inserción factura ============================
+
+EXEC gestion_venta.Insertar_Factura '752-68-8428', 1, 2, '2024-11-15', '14:30:00', 2, 5, 3
+GO
 EXEC gestion_venta.Obtener_Id_Factura '752-68-8428', @id OUTPUT
-EXEC gestion_venta.Insertar_DetalleVenta 1,@id,4
+GO
+EXEC gestion_venta.Insertar_DetalleVenta 1, @id, 4
+GO
+
 --Intento de inserción de una factura cuyo id no existe--
 EXEC gestion_venta.Insertar_DetalleVenta 1,1010,4
-
+GO
 
 --Consultas comentadas para verificaciones--
 /*SELECT * FROM gestion_sucursal.Cargo
