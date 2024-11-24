@@ -8,7 +8,7 @@
 			Federico Pucci 41106855
 			Mara Verónica Guerrera 40538513
 
-		FECHA DE ENTREGA: 08/11/2024
+		FECHA DE ENTREGA: 22/11/2024
 
 ENTREGA 4:
 
@@ -42,8 +42,9 @@ GO*/
 USE Com5600G05
 GO
 -- ============================ SP IMPORTACION SUCURSALES ============================
-CREATE OR ALTER PROCEDURE Importar_Sucursales
-@Ruta NVARCHAR(400)
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Importar_Sucursales
+	@Ruta NVARCHAR(400)
 AS
 BEGIN
 
@@ -57,23 +58,24 @@ BEGIN
 		Nombre VARCHAR(30),
 		Direccion VARCHAR(150),
 		Horario VARCHAR(50),
-		Telefono CHAR(9)
+		Telefono CHAR(9),
+		id_empresa INT
 	)
 	
 	SET @Dinamico = N'
-	INSERT INTO #TempSucursales (Nombre, Direccion, Horario, Telefono)
+	INSERT INTO #TempSucursales (Nombre, Direccion, Horario, Telefono,id_empresa)
 	SELECT 
 		 [Reemplazar por] as Nombre,
 		 [direccion] as Direccion,
 		 [Horario],
-		 [Telefono]
+		 [Telefono],
+		 1 AS id_empresa
 	FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', 
 					''Excel 12.0;Database=' + @Ruta + N';HDR=YES'',
 					''SELECT [Reemplazar por],[direccion],[Horario],[Telefono] FROM [sucursal$]'');'
 
 	EXEC sp_executesql @Dinamico;
-
-	INSERT INTO gestion_sucursal.Sucursal(nombre,direccion,horario,telefono)
+	INSERT INTO gestion_sucursal.Sucursal(nombre,direccion,horario,telefono,id_empresa)
 	SELECT *
 	FROM #TempSucursales te
 	WHERE NOT EXISTS (
@@ -86,8 +88,9 @@ END
 GO
 
 -- ============================ SP IMPORTACION EMPLEADOS ============================
-CREATE OR ALTER PROCEDURE Importar_Empleados
-@Ruta NVARCHAR(400)
+
+CREATE OR ALTER PROCEDURE gestion_sucursal.Importar_Empleados
+	@Ruta NVARCHAR(400)
 AS
 BEGIN
 
@@ -205,7 +208,3 @@ DBCC CHECKIDENT ('gestion_sucursal.Turno', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Sucursal', RESEED, 0);
 DBCC CHECKIDENT ('gestion_sucursal.Empleado', RESEED, 0);
 */
-
-
-
-
