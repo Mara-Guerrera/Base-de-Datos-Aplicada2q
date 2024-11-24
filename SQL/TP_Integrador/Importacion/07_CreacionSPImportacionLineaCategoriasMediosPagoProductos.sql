@@ -1,4 +1,18 @@
-/*Se proveen los archivos en el TP_integrador_Archivos.zip
+/*
+		BASE DE DATOS APLICADA
+		GRUPO: 05
+		COMISION: 02-5600
+		INTEGRANTES:
+			María del Pilar Bourdieu 45289653
+			Abigail Karina Peñafiel Huayta	41913506
+			Federico Pucci 41106855
+			Mara Verónica Guerrera 40538513
+
+		FECHA DE ENTREGA: 22/11/2024
+
+ENTREGA 4:
+
+Se proveen los archivos en el TP_integrador_Archivos.zip
 Ver archivo “Datasets para importar” en Miel.
 Se requiere que importe toda la información antes mencionada a la base de datos:
 • Genere los objetos necesarios (store procedures, funciones, etc.) para importar los
@@ -14,7 +28,10 @@ estructura requerida.
 • Los archivos CSV/JSON no deben modificarse. En caso de que haya datos mal
 cargados, incompletos, erróneos, etc., deberá contemplarlo y realizar las correcciones
 en el fuente SQL. (Sería una excepción si el archivo está malformado y no es posible
-interpretarlo como JSON o CSV).*/
+interpretarlo como JSON o CSV).
+*/
+
+-- ============================ STORED PROCEDURES IMPORTACION ============================
 
 /*sp_configure 'show advanced options', 1;
 RECONFIGURE;
@@ -22,10 +39,13 @@ GO
 sp_configure 'Ad Hoc Distributed Queries', 1;
 RECONFIGURE;
 GO*/
+
 USE Com5600G05
 GO
-CREATE OR ALTER PROCEDURE Importar_TipoProducto_Categoria
-@Ruta NVARCHAR(400)
+-- ============================ SP IMPORTACION TIPO PRODUCTO Y CATEGORIA ============================
+
+CREATE OR ALTER PROCEDURE gestion_producto.Importar_TipoProducto_Categoria
+	@Ruta NVARCHAR(400)
 AS
 BEGIN
 	
@@ -72,8 +92,9 @@ BEGIN
 	DROP TABLE #TempImport
 END
 GO
+-- ============================ SP IMPORTACION MEDIOS DE PAGO ============================
 
-CREATE OR ALTER PROCEDURE Importar_Medios_de_Pago
+CREATE OR ALTER PROCEDURE gestion_venta.Importar_Medios_de_Pago
     @RutaArchivo NVARCHAR(255)
 AS
 BEGIN
@@ -104,9 +125,10 @@ BEGIN
     DROP TABLE #TempMedios;
 END;
 GO
+-- ============================ SP IMPORTACION PRODUCTOS ============================
 
-CREATE OR ALTER PROCEDURE Importar_Productos_Importados
-@RutaArchivo NVARCHAR(255)
+CREATE OR ALTER PROCEDURE gestion_producto.Importar_Productos_Importados
+	@RutaArchivo NVARCHAR(255)
 AS
 BEGIN
 
@@ -192,8 +214,8 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Importar_catalogo_csv
-@RutaArchivo NVARCHAR(400)
+CREATE OR ALTER PROCEDURE gestion_producto.Importar_catalogo_csv
+	@RutaArchivo NVARCHAR(400)
 AS
 BEGIN
 
@@ -280,8 +302,8 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Importar_Electronicos
-@RutaArchivo NVARCHAR(400)
+CREATE OR ALTER PROCEDURE gestion_producto.Importar_Electronicos
+	@RutaArchivo NVARCHAR(400)
 AS
 BEGIN
 
