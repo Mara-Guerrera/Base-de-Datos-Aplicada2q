@@ -1,3 +1,37 @@
+/*
+		BASE DE DATOS APLICADA
+		GRUPO: 05
+		COMISION: 02-5600
+		INTEGRANTES:
+			María del Pilar Bourdieu 45289653
+			Abigail Karina Peñafiel Huayta	41913506
+			Federico Pucci 41106855
+			Mara Verónica Guerrera 40538513
+
+		FECHA DE ENTREGA: 22/11/2024
+
+ENTREGA 4:
+
+Se proveen los archivos en el TP_integrador_Archivos.zip
+Ver archivo “Datasets para importar” en Miel.
+Se requiere que importe toda la información antes mencionada a la base de datos:
+• Genere los objetos necesarios (store procedures, funciones, etc.) para importar los
+archivos antes mencionados. Tenga en cuenta que cada mes se recibirán archivos de
+novedades con la misma estructura, pero datos nuevos para agregar a cada maestro.
+• Considere este comportamiento al generar el código. Debe admitir la importación de
+novedades periódicamente.
+• Cada maestro debe importarse con un SP distinto. No se aceptarán scripts que
+realicen tareas por fuera de un SP.
+• La estructura/esquema de las tablas a generar será decisión suya. Puede que deba
+realizar procesos de transformación sobre los maestros recibidos para adaptarlos a la
+estructura requerida.
+• Los archivos CSV/JSON no deben modificarse. En caso de que haya datos mal
+cargados, incompletos, erróneos, etc., deberá contemplarlo y realizar las correcciones
+en el fuente SQL. (Sería una excepción si el archivo está malformado y no es posible
+interpretarlo como JSON o CSV).
+*/
+
+-- ============================ STORED PROCEDURES IMPORTACION ============================
 /*sp_configure 'show advanced options', 1;
 RECONFIGURE;
 GO
@@ -6,8 +40,10 @@ RECONFIGURE;
 GO*/
 USE Com5600G05
 GO
-CREATE OR ALTER PROCEDURE Importar_ventas_csv
-@RutaArchivo NVARCHAR(400)
+-- ============================ SP IMPORTACION VENTAS ============================
+
+CREATE OR ALTER PROCEDURE gestion_venta.Importar_ventas_csv
+	@RutaArchivo NVARCHAR(400)
 AS
 BEGIN
 
@@ -101,6 +137,7 @@ BEGIN
 	
 	BEGIN TRANSACTION
 		BEGIN TRY
+		
 		INSERT INTO gestion_venta.Factura(id_factura,id_tipoFactura,fecha,hora,id_medioDePago,id_sucursal,id_empleado)
 		SELECT
 			te.id_factura,
@@ -109,7 +146,7 @@ BEGIN
 			CONVERT(TIME(7), te.hora) AS hora_convertida,
 			mp.id id_medioDePago,
 			s.id id_sucursal,
-			e.id id_empleado
+			e.id id_empleado 
 		FROM #TempVentas te 
 		JOIN gestion_venta.TipoFactura tf ON tf.nombre = te.tipo_factura
 		JOIN gestion_venta.MedioDePago mp ON mp.nombre = te.medio_pago 
@@ -164,6 +201,7 @@ GO
 
 /*
 SELECT * FROM gestion_venta.DetalleVenta
+WHERE id_factura = 10
 SELECT * FROM gestion_venta.Factura
 SELECT * FROM gestion_venta.TipoFactura
 DELETE FROM gestion_venta.DetalleVenta
