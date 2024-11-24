@@ -189,7 +189,13 @@ GO
 SELECT * FROM gestion_sucursal.Sucursal
 GO
 
+DELETE gestion_sucursal.Empresa WHERE id = 1
+GO
+	
 -- RESETEAR ANTES DE VOLVER A PROBAR EL LOTE O DE IMPORTAR
 
 DBCC CHECKIDENT ('gestion_sucursal.Sucursal', RESEED, 0);
 GO
+DBCC CHECKIDENT ('gestion_sucursal.Empresa', RESEED, 0);
+GO
+
