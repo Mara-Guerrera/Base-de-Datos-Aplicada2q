@@ -32,10 +32,16 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Sucursal];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Sucursal
 	@id_sucursal INT
 AS
 BEGIN
+	IF @id_sucursal IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la sucursal.', 16, 1);
+		RETURN;
+	END
 	-- Si la sucursal existe y esta activa
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
 	BEGIN
@@ -51,7 +57,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('La sucursal con ID %d no existe o ya fue dada de baja.', 16, 1, @id_sucursal);
+		RAISERROR('Error: La sucursal con ID %d no existe o ya fue dada de baja.', 16, 1, @id_sucursal);
 	END
 END
 GO
@@ -59,10 +65,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Turno];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Turno
 	@id_turno INT
 AS
 BEGIN
+	IF @id_turno IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del turno.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el turno existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id_turno AND activo = 1)
 	BEGIN
@@ -74,7 +87,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El turno con ID %d no existe o ya fue dado de baja.', 16, 1, @id_turno);
+		RAISERROR('Error: El turno con ID %d no existe o ya fue dado de baja.', 16, 1, @id_turno);
 	END
 END
 GO
@@ -82,10 +95,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Cargo]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Cargo];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Cargo
 	@id_cargo INT
 AS
 BEGIN
+	IF @id_cargo IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del cargo.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el cargo existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id_cargo AND activo = 1)
 	BEGIN
@@ -97,7 +117,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El cargo con ID %d no existe o ya fue dado de baja.', 16, 1, @id_cargo);
+		RAISERROR('Error: El cargo con ID %d no existe o ya fue dado de baja.', 16, 1, @id_cargo);
 	END
 END
 GO
@@ -105,10 +125,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Empleado]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Empleado];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Empleado
 	@id_empleado INT
 AS
 BEGIN
+	IF @id_empleado IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del empleado.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el empleado existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado AND activo = 1)
 	BEGIN
@@ -120,7 +147,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El empleado con ID %d no existe o ya fue dado de baja.', 16, 1, @id_empleado);
+		RAISERROR('Error: El empleado con ID %d no existe o ya fue dado de baja.', 16, 1, @id_empleado);
     END
 END
 GO
@@ -128,10 +155,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_TipoCliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_TipoCliente];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_TipoCliente
 	@id_tipoCliente INT
 AS
 BEGIN
+	IF @id_tipoCliente IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de cliente.', 16, 1);
+		RETURN;
+	END
+
     -- Si el tipo de cliente existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipoCliente AND activo = 1)
 	BEGIN
@@ -143,7 +177,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El tipo de cliente con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoCliente);
+		RAISERROR('Error: El tipo de cliente con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoCliente);
 	END
 END
 GO
@@ -151,10 +185,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Genero]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Genero];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Genero
 	@id_genero INT
 AS
 BEGIN
+	IF @id_genero IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del género.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el genero existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero AND activo = 1)
 	BEGIN
@@ -166,7 +207,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El genero con ID %d no existe o ya fue dado de baja.', 16, 1, @id_genero);
+		RAISERROR('Error: El genero con ID %d no existe o ya fue dado de baja.', 16, 1, @id_genero);
 	END
 END
 GO
@@ -174,10 +215,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Borrar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Borrar_Cliente];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Borrar_Cliente
 	@id_cliente INT
 AS
 BEGIN
+	IF @id_cliente IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del cliente.', 16, 1);
+		RETURN;
+	END
+
     -- Si el cliente existe y esta activo
 	IF EXISTS (SELECT 1FROM gestion_sucursal.Cliente WHERE id = @id_cliente AND activo = 1)
 	BEGIN
@@ -189,7 +237,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El cliente con ID %d no existe o ya fue dado de baja.', 16, 1, @id_cliente);
+		RAISERROR('Error: El cliente con ID %d no existe o ya fue dado de baja.', 16, 1, @id_cliente);
 	END
 END
 GO
@@ -199,10 +247,17 @@ GO
 IF OBJECT_ID('[gestion_producto].[Borrar_Proveedor]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Borrar_Proveedor];
 GO
+
 CREATE PROCEDURE gestion_producto.Borrar_Proveedor
 	@id_proveedor INT
 AS
 BEGIN
+	IF @id_proveedor IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del proveedor.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el proveedor existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE id = @id_proveedor AND activo = 1)
 	BEGIN
@@ -214,7 +269,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El proveedor con ID %d no existe o ya fue dado de baja.', 16, 1, @id_proveedor);
+		RAISERROR('Error: El proveedor con ID %d no existe o ya fue dado de baja.', 16, 1, @id_proveedor);
 	END
 END
 GO
@@ -222,10 +277,17 @@ GO
 IF OBJECT_ID('[gestion_producto].[Borrar_TipoProducto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Borrar_TipoProducto];
 GO
+
 CREATE PROCEDURE gestion_producto.Borrar_TipoProducto
 	@id_tipoProducto INT
 AS
 BEGIN
+	IF @id_tipoProducto IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de producto.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el tipo de producto existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto AND activo = 1)
 	BEGIN
@@ -243,7 +305,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El tipo de producto con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoProducto);
+		RAISERROR('Error: El tipo de producto con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoProducto);
 	END
 END
 GO
@@ -251,10 +313,17 @@ GO
 IF OBJECT_ID('[gestion_producto].[Borrar_Categoria]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Borrar_Categoria];
 GO
+
 CREATE PROCEDURE gestion_producto.Borrar_Categoria
 	@id_categoria INT
 AS
 BEGIN
+	IF @id_categoria IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la categoría.', 16, 1);
+		RETURN;
+	END
+
     -- Si la categoria existe y esta activa
 	IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE id = @id_categoria AND activo = 1)
 	BEGIN
@@ -272,7 +341,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('La categoria con ID %d no existe o ya fue dada de baja.', 16, 1, @id_categoria);
+		RAISERROR('Error: La categoria con ID %d no existe o ya fue dada de baja.', 16, 1, @id_categoria);
     END
 END
 GO
@@ -280,10 +349,17 @@ GO
 IF OBJECT_ID('[gestion_producto].[Borrar_Producto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Borrar_Producto];
 GO
+
 CREATE PROCEDURE gestion_producto.Borrar_Producto
 	@id_producto INT
 AS
 BEGIN
+	IF @id_producto IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del producto.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el producto existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_producto.Producto WHERE id = @id_producto AND activo = 1)
 	BEGIN
@@ -295,7 +371,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El producto con ID %d no existe o ya fue dado de baja.', 16, 1, @id_producto);
+		RAISERROR('Error: El producto con ID %d no existe o ya fue dado de baja.', 16, 1, @id_producto);
     END
 END
 GO
@@ -305,10 +381,17 @@ GO
 IF OBJECT_ID('[gestion_venta].[Borrar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Borrar_MedioDePago];
 GO
+
 CREATE PROCEDURE gestion_venta.Borrar_MedioDePago
 	@id_medioDePago INT
 AS
 BEGIN
+	IF @id_medioDePago IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Medio de pago.', 16, 1);
+		RETURN;
+	END
+
     -- Si el medio de pago existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago AND activo = 1)
 	BEGIN
@@ -320,7 +403,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El medio de pago con ID %d no existe o ya fue dado de baja.', 16, 1, @id_medioDePago);
+		RAISERROR('Error: El medio de pago con ID %d no existe o ya fue dado de baja.', 16, 1, @id_medioDePago);
 	END
 END
 GO
@@ -328,10 +411,17 @@ GO
 IF OBJECT_ID('[gestion_venta].[Borrar_TipoFactura]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Borrar_TipoFactura];
 GO
+
 CREATE PROCEDURE gestion_venta.Borrar_TipoFactura
 	@id_tipoFactura INT
 AS
 BEGIN
+	IF @id_tipoFactura IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del Tipo de factura.', 16, 1);
+		RETURN;
+	END
+
 	-- Si el tipo de factura existe y esta activo
 	IF EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipoFactura AND activo = 1)
 	BEGIN
@@ -343,7 +433,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El tipo de factura con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoFactura);
+		RAISERROR('Error: El tipo de factura con ID %d no existe o ya fue dado de baja.', 16, 1, @id_tipoFactura);
 	END
 END
 GO
@@ -355,6 +445,12 @@ CREATE PROCEDURE gestion_venta.Borrar_Factura
 	@id_factura	INT
 AS
 BEGIN
+	IF @id_factura IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID de la factura.', 16, 1);
+		RETURN;
+	END
+
 	-- Si la factura existe y esta activa
 	IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
 	BEGIN
@@ -372,7 +468,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('La factura con ID %d no existe o ya fue dada de baja.', 16, 1, @id_factura);
+		RAISERROR('Error: La factura con ID %d no existe o ya fue dada de baja.', 16, 1, @id_factura);
 	END
 END
 GO
@@ -380,11 +476,18 @@ GO
 IF OBJECT_ID('[gestion_venta].[Borrar_DetalleVenta]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Borrar_DetalleVenta];
 GO
+
 CREATE PROCEDURE gestion_venta.Borrar_DetalleVenta
 	@id_detalleVenta INT,
 	@id_factura	INT
 AS
 BEGIN
+	IF @id_detalleVenta IS NULL AND @id_factura IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el ID del detalle de venta y el ID de la factura.', 16, 1);
+		RETURN;
+	END
+
 	-- Si existe el detalle de venta para esa factura y esta activo
 	IF EXISTS (	SELECT 1 FROM gestion_venta.DetalleVenta
 				WHERE id = @id_detalleVenta AND id_factura = @id_factura AND activo = 1)
@@ -398,7 +501,7 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		RAISERROR('El detalle de venta con ID %d no existe o ya fue dado de baja.', 16, 1, @id_detalleVenta);
+		RAISERROR('Error: El detalle de venta con ID %d no existe o ya fue dado de baja.', 16, 1, @id_detalleVenta);
 	END
 END
 GO
