@@ -22,11 +22,10 @@ Genere store procedures para manejar la inserción, modificado, borrado (si corr
 también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla.
 Los nombres de los store procedures NO deben comenzar con “SP”.
 Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
-en la creación de objetos. NO use el esquema “dbo”.*/
-
+en la creación de objetos. NO use el esquema “dbo”.
+*/
 -- ============================ STORED PROCEDURES INSERCION ============================
--- USE MASTER
-USE [Com5600G05]
+USE Com5600G05
 GO
 
 -- ============================ SP INSERCION GESTION_SUCURSAL ============================
@@ -39,24 +38,32 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Sucursal]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Sucursal];
 GO
+
 CREATE PROCEDURE gestion_sucursal.Insertar_Sucursal
 	@nombre VARCHAR(30),
 	@direccion VARCHAR(150),
-	@horario VARCHAR(50),
-	@telefono VARCHAR(15),
+	@horario VARCHAR(50) = NULL,
+	@telefono VARCHAR(15) = NULL,
 	@id_empresa INT
 AS
 BEGIN
+	-- Verifico que mis campos minimos a insertar no sean nulos
+	IF @nombre IS NULL AND @direccion IS NULL AND @id_empresa IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el nombre, dirección y la empresa como mínimo.', 16, 1)
+		RETURN;
+	END
+
 	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empresa WHERE id = @id_empresa AND activo = 1)
 	BEGIN
 		RAISERROR('Error: La empresa no existe.', 16, 1)
 		RETURN;
 	END
 
-    -- Validar el teléfono
-	IF @telefono IS NOT NULL AND @telefono NOT LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'
+    -- Verificar si el teléfono tiene el formato correcto
+	IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 	BEGIN
-		RAISERROR('Error: El telefono no tiene un formato válido: XXXX-XXXX', 16, 1);
+		RAISERROR('Error: El formato del teléfono no es válido.', 16, 1);
 		RETURN;
 	END
 	
@@ -93,10 +100,17 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Turno]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Turno];
 GO
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Turno]
+
+CREATE PROCEDURE gestion_sucursal.Insertar_Turno
     @descripcion VARCHAR(16)
 AS
 BEGIN
+	IF @descripcion IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar la descripción del Turno.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el turno con la misma descripción ya existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE descripcion = @descripcion  AND activo = 1)
     BEGIN
@@ -132,15 +146,20 @@ GO
 IF OBJECT_ID('[gestion_sucursal].[Insertar_Cargo]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Cargo];
 GO
-
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Cargo]
+CREATE PROCEDURE gestion_sucursal.Insertar_Cargo
     @nombre VARCHAR(20)
 AS
 BEGIN
+	IF @nombre IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el nombre del Cargo.', 16, 1);
+		RETURN;
+	END
+
     -- Verificar si el cargo con el mismo nombre ya existe
     IF EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE nombre = @nombre  AND activo = 1)
     BEGIN
-        RAISERROR('Error: Ya existe un cargo con ese nombre.',16,1);
+        RAISERROR('Error: Ya existe un cargo con ese nombre.', 16, 1);
         RETURN;
     END
 
@@ -173,7 +192,7 @@ IF OBJECT_ID('[gestion_sucursal].[Insertar_Empleado]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Empleado];
 GO
 
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Empleado]
+CREATE PROCEDURE gestion_sucursal.Insertar_Empleado
 	@legajo	INT,
 	@nombre	VARCHAR(30),
 	@apellido VARCHAR(30),
@@ -181,35 +200,23 @@ CREATE PROCEDURE [gestion_sucursal].[Insertar_Empleado]
 	@direccion VARCHAR(160) = NULL,
 	@cuil CHAR(13) = NULL,
 	@email VARCHAR(60) = NULL,
-	@email_empresa VARCHAR(60),
+	@email_empresa VARCHAR(60) = NULL,
 	@id_cargo INT,
 	@id_sucursal INT,
 	@id_turno INT
 AS
 BEGIN
 
-	IF @legajo IS NULL AND @nombre IS NULL AND @apellido IS NULL AND @dni IS NULL AND @email_empresa IS NULL
+	IF @legajo IS NULL AND @id_sucursal IS NULL
 	BEGIN
-		RAISERROR('Error: No ingresó datos mínimos a insertar', 16, 1);
+		RAISERROR('Error: Debe ingresar legajo y sucursal como mínimo.', 16, 1);
 		RETURN;
 	END
-	--Verificación de la existencia de la sucursal, turno y cargo (foráneas)
 
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
+	-- Verificación de la existencia de la sucursal (foranea)
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal AND activo = 1)
     BEGIN
         RAISERROR('Error: La sucursal con ID %d no existe o no está activa.', 16, 1, @id_sucursal);
-        RETURN;
-    END
-
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id_turno AND activo = 1)
-    BEGIN
-        RAISERROR('Error: El turno con ID %d no existe o no está activo.', 16, 1, @id_turno);
-        RETURN;
-    END
-
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id_cargo AND activo = 1)
-    BEGIN
-        RAISERROR('Error: El cargo con ID %d no existe o no está activo.', 16, 1, @id_cargo);
         RETURN;
     END
 
@@ -232,19 +239,50 @@ BEGIN
 		RETURN;
 	END
 
+	IF @nombre IS NULL AND @apellido IS NULL AND @dni IS NULL AND @id_turno IS NULL AND @id_cargo IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar nombre, apellido, DNI, turno y cargo para el nuevo empleado como mínimo.', 16, 1);
+		RETURN;
+	END
+
+	-- Verificación de la existencia del turno y cargo (foraneas)
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Turno WHERE id = @id_turno AND activo = 1)
+    BEGIN
+        RAISERROR('Error: El turno con ID %d no existe o no está activo.', 16, 1, @id_turno);
+        RETURN;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cargo WHERE id = @id_cargo AND activo = 1)
+    BEGIN
+        RAISERROR('Error: El cargo con ID %d no existe o no está activo.', 16, 1, @id_cargo);
+        RETURN;
+    END
+
+	-- Validar el nombre y apellido
+	IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
+	BEGIN
+		RAISERROR('Error: El nombre solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+		RETURN;
+	END
+
+	IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
+	BEGIN
+		RAISERROR('Error: El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
+		RETURN;
+	END
+
 	--Verificación del formato de CUIL
-	IF @cuil IS NOT NULL AND @cuil NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+	IF @cuil IS NOT NULL AND (gestion_validacion.Validar_Cuil(@cuil) = 0)
 	BEGIN
 		RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
 		RETURN;
 	END
 
 	--Verificación del formato de los correos electrónicos
-	IF ( @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0) )
-	OR (PATINDEX('%@%.%', @email_empresa) = 0 OR CHARINDEX(' ', @email_empresa) > 0)
+	IF (@email IS NOT NULL AND gestion_validacion.Validar_Email(@email) = 0)
+	OR (@email_empresa IS NOT NULL AND gestion_validacion.Validar_Email(@email_empresa) = 0)
 	BEGIN
-		RAISERROR('Error: El email o el email_empresa no tienen un formato básico válido (deben contener un "@" y un punto)
-					o contienen espacios.', 16, 1);
+		RAISERROR('Error: El email o el email_empresa no tienen un formato básico válido (deben tener un "@" y un punto como mínimo).', 16, 1);
 		RETURN;
 	END
 
@@ -266,16 +304,21 @@ IF OBJECT_ID('[gestion_sucursal].[Insertar_TipoCliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_TipoCliente];
 GO
 
-CREATE PROCEDURE [gestion_sucursal].[Insertar_TipoCliente]
+CREATE PROCEDURE gestion_sucursal.Insertar_TipoCliente
     @descripcion VARCHAR(10)
 AS
 BEGIN
+	IF @descripcion IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar la descripción del Tipo de cliente.', 16, 1);
+		RETURN;
+	END
     -- Verificar si el tipo de cliente con la misma descripción ya existe y está activo
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 1)
-    BEGIN
-        RAISERROR('Error: Ya existe el tipo de cliente que se desea insertar.', 16, 1);
-        RETURN;
-    END
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 1)
+	BEGIN
+		RAISERROR('Error: Ya existe el tipo de cliente que se desea insertar.', 16, 1);
+		RETURN;
+	END
 
     -- Si el tipo de cliente existe pero está inactivo, se reactiva
     IF EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE descripcion = @descripcion  AND activo = 0)
@@ -306,32 +349,38 @@ IF OBJECT_ID('[gestion_sucursal].[Insertar_Genero]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Genero];
 GO
 
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Genero]
+CREATE PROCEDURE gestion_sucursal.Insertar_Genero
     @descripcion VARCHAR(10)
 AS
 BEGIN
-    -- Verificar si el género con la misma descripción ya existe y está activo
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 1)
-    BEGIN
-        RAISERROR('Error: Ya existe un género con dicha descripción', 16, 1);
-        RETURN;
-    END
+	IF @descripcion IS NULL
+	BEGIN
+		RAISERROR('Error: Debe insertar la descripcion del Género', 16, 1);
+		RETURN;
+	END
 
-    -- Si el género existe pero está inactivo, se reactiva
-    IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 0)
-    BEGIN
-        UPDATE gestion_sucursal.Genero
-        SET activo = 1
-        WHERE descripcion = @descripcion AND activo = 0;
-        PRINT 'El género se dió de alta.';
-        RETURN;
-    END
+	-- Verificar si el género con la misma descripción ya existe y está activo
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 1)
+	BEGIN
+		RAISERROR('Error: Ya existe un género con dicha descripción', 16, 1);
+		RETURN;
+	END
 
-    -- Insertar nuevo género
-    INSERT INTO gestion_sucursal.Genero (descripcion)
-    VALUES (@descripcion);
+	-- Si el género existe pero está inactivo, se reactiva
+	IF EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE descripcion = @descripcion  AND activo = 0)
+	BEGIN
+		UPDATE gestion_sucursal.Genero
+		SET activo = 1
+		WHERE descripcion = @descripcion AND activo = 0;
+		PRINT 'El género se dió de alta.';
+		RETURN;
+	END
 
-    PRINT 'Género insertado exitosamente.';
+	-- Insertar nuevo género
+	INSERT INTO gestion_sucursal.Genero (descripcion)
+	VALUES (@descripcion);
+
+	PRINT 'Género insertado exitosamente.';
 END
 GO
 
@@ -345,20 +394,21 @@ IF OBJECT_ID('[gestion_sucursal].[Insertar_Cliente]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_sucursal].[Insertar_Cliente];
 GO
 
-CREATE PROCEDURE [gestion_sucursal].[Insertar_Cliente]
+CREATE PROCEDURE gestion_sucursal.Insertar_Cliente
 	@nombre VARCHAR(50),
-	@apellido VARCHAR(50),
-	@tipo INT,
-	@genero INT,
+	@apellido VARCHAR(50) = NULL,
+	@id_tipo INT,
+	@id_genero INT,
 	@dni BIGINT,
+	@domicilio VARCHAR(100) = NULL,
 	@cuit CHAR(13) = NULL,
 	@telefono VARCHAR(15) = NULL,
 	@email VARCHAR(80) = NULL
 AS
 BEGIN
-	IF @nombre IS NULL AND @apellido IS NULL AND @tipo IS NULL AND @genero IS NULL AND @dni IS NULL
+	IF @dni IS NULL
 	BEGIN
-		RAISERROR('Error: No ingresó los datos mínimos a insertar.', 16, 1);
+		RAISERROR('Error: Debe ingresar el DNI como mínimo.', 16, 1);
 		RETURN;
 	END
 
@@ -368,19 +418,7 @@ BEGIN
 		RAISERROR('Error: El cliente ya existe.', 16, 1);
 		RETURN;
 	END
-	 -- Verificación de la existencia del tipo de cliente
-	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @tipo)
-    BEGIN
-        RAISERROR('Error: El tipo de cliente no existe.', 16, 1);
-        RETURN;
-    END
 
-    -- Verificación de la existencia del genero
-    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @genero)
-    BEGIN
-        RAISERROR('Error: El género no existe.', 16, 1);
-        RETURN;
-    END
 	-- Si el cliente existe pero no esta activo
 	IF EXISTS (	SELECT 1 FROM gestion_sucursal.Cliente
 				WHERE dni = @dni AND activo = 0 )
@@ -392,6 +430,26 @@ BEGIN
 		RETURN;
 	END
 
+	IF @nombre IS NULL AND @id_tipo IS NULL AND @id_genero IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el nombre, tipo y género del nuevo cliente como mínimo.', 16, 1);
+		RETURN;
+	END
+
+	 -- Verificación de la existencia del tipo de cliente
+	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.TipoCliente WHERE id = @id_tipo)
+    BEGIN
+        RAISERROR('Error: El Tipo de cliente no existe.', 16, 1);
+        RETURN;
+    END
+
+    -- Verificación de la existencia del genero
+    IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Genero WHERE id = @id_genero)
+    BEGIN
+        RAISERROR('Error: El género no existe.', 16, 1);
+        RETURN;
+    END
+	
 	-- Validar el nombre y apellido
 	IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @nombre) > 0
 	BEGIN
@@ -399,47 +457,43 @@ BEGIN
 		RETURN;
 	END
 
-	IF PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
+	IF @apellido IS NOT NULL AND PATINDEX('%[^a-zA-ZáéíóúÁÉÍÓÚ ]%', @apellido) > 0
 	BEGIN
 		RAISERROR('Error: El apellido solo puede contener letras y un espacio (sin números ni caracteres especiales).', 16, 1);
 		RETURN;
 	END
 
-	-- Validar el formato de CUIT
-	IF @cuit IS NOT NULL AND @cuit NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+	IF @domicilio IS NOT NULL AND PATINDEX('%[^a-zA-Z0-9áéíóúÁÉÍÓÚ .-]%', @domicilio) > 0
 	BEGIN
-		RAISERROR('Error: El cuil no tiene un formato válido: XX-XXXXXXXX-X', 16, 1);
+		RAISERROR('La dirección contiene caracteres no permitidos.', 16, 1);
 		RETURN;
 	END
 
-	-- Validar el teléfono
-	IF @telefono IS NOT NULL
+	IF @cuit IS NOT NULL AND (gestion_validacion.Validar_Cuil(@cuit) = 0)
 	BEGIN
-		IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
-		BEGIN
-			RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
-			RETURN;
-		END
-		ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
-		BEGIN
-			RAISERROR('Error: Formato de número inválido.', 16, 1);
-			RETURN;
-		END
+		RAISERROR('Error: El formato del CUIT no es válido.', 16, 1);
+		RETURN;
 	END
 
-	-- Validar el formato del correo electrónico
-	IF @email IS NOT NULL AND (PATINDEX('%@%.%', @email) = 0 OR CHARINDEX(' ', @email) > 0)
+	IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 	BEGIN
-		RAISERROR('Error: El email no tiene un formato básico válido (debe contener un "@" y un punto) o contiene espacios.', 16, 1);
+		RAISERROR('Error: El formato del teléfono no es válido.',16,1);
+		RETURN;
+	END
+
+	IF @email IS NOT NULL AND (gestion_validacion.Validar_Email(@email) = 0)
+	BEGIN
+		RAISERROR('Error: El email no tiene un formato válido.', 16, 1);
 		RETURN;
 	END
 
 	--Inserción del nuevo cliente
-	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero, dni, cuit, telefono, email)
-	VALUES (@nombre, @apellido, @tipo, @genero, @dni, @cuit, @telefono, @email);
+	INSERT INTO gestion_sucursal.Cliente (nombre, apellido, id_tipo, id_genero, direccion, dni, cuit, telefono, email)
+	VALUES (@nombre, @apellido, @id_tipo, @id_genero, @domicilio, @dni, @cuit, @telefono, @email);
 	PRINT 'Cliente insertado con éxito.';
 END
 GO
+
 -- ============================ SP INSERCION GESTION_PRODUCTO ============================
 
 /****** Object:  StoredProcedure [gestion_producto].[Insertar_Proveedor]    Script Date: 13/11/2024 14:39:56 ******/
@@ -452,16 +506,17 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Proveedor]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Proveedor];
 GO
 
-CREATE PROCEDURE [gestion_producto].[Insertar_Proveedor]
+CREATE PROCEDURE gestion_producto.Insertar_Proveedor
     @nombre		VARCHAR(100),
-	@telefono	VARCHAR(15)
+	@telefono	VARCHAR(15) = NULL
 AS
 BEGIN
-	IF @nombre IS NULL AND @telefono IS NULL
+	IF @nombre IS NULL
 	BEGIN
-		RAISERROR('Error: No ingresó los datos mínimos a insertar.', 16, 1);
+		RAISERROR('Error: Debe ingresar el nombre como mínimo.', 16, 1);
 		RETURN;
 	END
+
     -- Verificar si el proveedor con el mismo nombre ya existe y está activo
     IF EXISTS (SELECT 1 FROM gestion_producto.Proveedor WHERE nombre = @nombre  AND activo = 1)
     BEGIN
@@ -480,17 +535,12 @@ BEGIN
         RETURN;
     END
 
-	-- Validar el teléfono
-	IF PATINDEX('%[^ 0-9-]%', @telefono) > 0 -- Validar solo caracteres permitidos
+	IF @telefono IS NOT NULL AND (gestion_validacion.Validar_Telefono(@telefono) = 0)
 	BEGIN
-		RAISERROR('Error: Número inválido. Solo puede tener números, guiones y espacios.', 16, 1);
+		RAISERROR('Error: El formato del teléfono no es válido.',16,1);
 		RETURN;
 	END
-	ELSE IF NOT (@telefono LIKE '____-____' OR @telefono LIKE '11 ____-____' ) -- Validar formato
-	BEGIN
-		RAISERROR('Error: Formato de número inválido.', 16, 1);
-		RETURN;
-	END
+	
     -- Insertar nuevo proveedor
     INSERT INTO gestion_producto.Proveedor (nombre, telefono)
     VALUES (@nombre, @telefono);
@@ -509,24 +559,32 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Tipo_Producto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Tipo_Producto];
 GO
 
-CREATE PROCEDURE [gestion_producto].[Insertar_Tipo_Producto] 
+CREATE PROCEDURE gestion_producto.Insertar_Tipo_Producto
 	@nombre VARCHAR(40)
 AS
 BEGIN
-	IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
-				WHERE @nombre = nombre  and activo = 1)
+	IF @nombre IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el nombre del Tipo de producto', 16, 1)
+		RETURN;
+	END
+
+	IF EXISTS (	SELECT 1
+				FROM gestion_producto.TipoProducto
+				WHERE @nombre = nombre AND activo = 1 )
 	BEGIN
 		RAISERROR('Error: El tipo de producto "%s" ya existe.', 16, 1, @nombre)
 		RETURN;
 	END
 	ELSE
 	BEGIN
-		IF EXISTS (	SELECT 1 FROM gestion_producto.TipoProducto
-					WHERE @nombre = nombre  and activo = 0)
+		IF EXISTS (	SELECT 1
+					FROM gestion_producto.TipoProducto
+					WHERE @nombre = nombre AND activo = 0)
 		BEGIN
 			UPDATE gestion_producto.TipoProducto
             SET activo = 1
-            WHERE @nombre = nombre  and activo = 0;
+            WHERE @nombre = nombre AND activo = 0;
 			
 			PRINT 'El tipo de producto se dió de alta.';
 			RETURN;
@@ -549,11 +607,16 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Categoria]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Categoria];
 GO
 
-CREATE PROCEDURE [gestion_producto].[Insertar_Categoria]
+CREATE PROCEDURE gestion_producto.Insertar_Categoria
     @nombre VARCHAR(50),
     @id_tipoProducto INT
 AS
 BEGIN
+	IF @nombre IS NULL AND @id_tipoProducto IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el nombre el tipo de producto de la Categoría.', 16, 1);
+        RETURN;
+    END
     -- Verificar si el tipo de producto existe
     IF NOT EXISTS (SELECT 1 FROM gestion_producto.TipoProducto WHERE id = @id_tipoProducto)
     BEGIN
@@ -572,7 +635,7 @@ BEGIN
     -- Verificar si la categoría con el mismo nombre ya existe y está activa
     IF EXISTS (SELECT 1 FROM gestion_producto.Categoria WHERE nombre = @nombre  AND id_tipoProducto = @id_tipoProducto AND activo = 1)
     BEGIN
-        RAISERROR('Error: Ya existe una categoría con ese nombre para el tipo de producto especificado.',16,1);
+        RAISERROR('Error: Ya existe una categoría con ese nombre para el tipo de producto especificado.', 16, 1);
         RETURN;
     END
 
@@ -604,7 +667,7 @@ IF OBJECT_ID('[gestion_producto].[Insertar_Producto]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_producto].[Insertar_Producto];
 GO
 
-CREATE PROCEDURE [gestion_producto].[Insertar_Producto]
+CREATE PROCEDURE gestion_producto.Insertar_Producto
     @descripcion VARCHAR(50),
     @precio DECIMAL(7,2),
     @id_categoria INT = NULL,
@@ -614,6 +677,11 @@ CREATE PROCEDURE [gestion_producto].[Insertar_Producto]
     @id_proveedor INT = NULL
 AS
 BEGIN
+	IF @descripcion IS NULL AND @precio IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar la descripción y precio del Producto como mínimo.', 16, 1);
+        RETURN;
+    END
     -- Verificar si el proveedor existe y está activo
 	IF @id_proveedor IS NOT NULL
 	BEGIN
@@ -680,23 +748,22 @@ GO
 IF OBJECT_ID('[gestion_venta].[Insertar_MedioDePago]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Insertar_MedioDePago];
 GO
-CREATE PROCEDURE [gestion_venta].[Insertar_MedioDePago]
+
+CREATE PROCEDURE gestion_venta.Insertar_MedioDePago
     @nombre VARCHAR(11),
-    @descripcion VARCHAR(30)
+    @descripcion VARCHAR(30) = NULL
 AS
 BEGIN
-    -- Validar que los campos requeridos no sean nulos
-    IF @nombre IS NULL OR @descripcion IS NULL
+    IF @nombre IS NULL
     BEGIN
-		RAISERROR('Error: No ingresó los datos mínimos a insertar', 16, 1);
+		RAISERROR('Error: Debe ingresar el nombre del Medio de pago', 16, 1);
         RETURN;
     END
 
     -- Verificar si el medio de pago ya existe y está activo
     IF EXISTS (SELECT 1
                FROM gestion_venta.MedioDePago
-               WHERE nombre = @nombre 
-               AND activo = 1)
+               WHERE nombre = @nombre AND activo = 1)
     BEGIN
 		RAISERROR('Error: Ya existe el medio de pago.', 16, 1);
         RETURN;
@@ -709,8 +776,7 @@ BEGIN
                AND activo = 0)
     BEGIN
         UPDATE gestion_venta.MedioDePago
-        SET activo = 1,
-            descripcion = @descripcion
+        SET activo = 1
         WHERE nombre = @nombre AND activo = 0;
 
         PRINT 'El medio de pago se reactivó exitosamente.';
@@ -734,22 +800,21 @@ IF OBJECT_ID('[gestion_venta].[Insertar_TipoFactura]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Insertar_TipoFactura];
 GO
 
-CREATE PROCEDURE [gestion_venta].[Insertar_TipoFactura]
+CREATE PROCEDURE gestion_venta.Insertar_TipoFactura
     @nombre CHAR(1)
 AS
 BEGIN
     -- Validar que el campo nombre no sea nulo
     IF @nombre IS NULL
     BEGIN
-        RAISERROR('Error: El nombre no puede ser nulo.', 16, 1);
+        RAISERROR('Error: Debe ingresar el nombre del Tipo de factura.', 16, 1);
         RETURN;
     END
 
     -- Verificar si el tipo de factura ya existe y está activo
     IF EXISTS (SELECT 1
                FROM gestion_venta.TipoFactura
-               WHERE nombre = @nombre 
-               AND activo = 1)
+               WHERE nombre = @nombre AND activo = 1)
     BEGIN
         RAISERROR('Error: Ya existe el tipo de factura.', 16, 1);
         RETURN;
@@ -758,8 +823,7 @@ BEGIN
     -- Reactivar el tipo de factura si ya existe pero está inactivo
     IF EXISTS (SELECT 1
                FROM gestion_venta.TipoFactura
-               WHERE nombre = @nombre 
-               AND activo = 0)
+               WHERE nombre = @nombre AND activo = 0)
     BEGIN
         UPDATE gestion_venta.TipoFactura
         SET activo = 1
@@ -787,22 +851,29 @@ IF OBJECT_ID('[gestion_venta].[Insertar_Factura]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Insertar_Factura];
 GO
 
-CREATE PROCEDURE [gestion_venta].[Insertar_Factura]
+CREATE PROCEDURE gestion_venta.Insertar_Factura
     @id_factura CHAR(11),
-    @id_tipo INT,
+    @id_tipoFactura INT,
     @id_cliente INT,
     @fecha DATE,
     @hora TIME(7),
-    @id_medio INT,
+    @id_medioDePago INT,
     @id_empleado INT,
     @id_sucursal INT
 AS
 BEGIN
+	IF @id_factura IS NULL AND @id_tipoFactura IS NULL AND @id_cliente IS NULL
+	AND @id_medioDePago IS NULL AND @id_empleado IS NULL AND @id_sucursal IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar los datos mínimos a insertar.', 16, 1);
+		RETURN;
+	END
+
     BEGIN TRY
 	--Se agrega validacion para dar un mensaje intuitivo para el usuario
 		IF EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id_factura = @id_factura AND activo = 1)
 		BEGIN
-			RAISERROR('Error: La factura ingresada ya existe.',16,1)
+			RAISERROR('Error: La factura ingresada ya existe.', 16, 1)
 			RETURN;
 		END
 
@@ -820,9 +891,60 @@ BEGIN
 			RETURN;
 		END
 
+		 -- Validar id_tipoFactura
+        IF @id_tipoFactura IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.TipoFactura WHERE id = @id_tipoFactura)
+        BEGIN
+			RAISERROR('Error: El Tipo de Factura especificado no existe.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar id_cliente
+        IF @id_cliente IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente)
+        BEGIN
+            RAISERROR('Error: El Cliente especificado no existe.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar id_medioDePago
+        IF @id_medioDePago IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_venta.MedioDePago WHERE id = @id_medioDePago)
+        BEGIN
+            RAISERROR('Error: El Medio de pago especificado no existe.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar id_empleado
+        IF @id_empleado IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Empleado WHERE id = @id_empleado)
+        BEGIN
+            RAISERROR('Error: El Empleado especificado no existe.', 16, 1);
+            RETURN;
+        END
+
+        -- Validar id_sucursal
+        IF @id_sucursal IS NOT NULL AND NOT EXISTS (SELECT 1 FROM gestion_sucursal.Sucursal WHERE id = @id_sucursal)
+        BEGIN
+            RAISERROR('Error: La Sucursal especificada no existe.', 16, 1);
+            RETURN;
+        END
+
+		-- Validar formato de id_factura
+		IF @id_factura NOT LIKE '[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]'
+		BEGIN
+            RAISERROR('Error: El identificador de la factura no tiene un formato válido.', 16, 1)
+            RETURN;
+        END
+		-- Si no me dan la fecha y hora, las obtengo en el momento
+		IF @fecha IS NULL
+		BEGIN
+			SET @fecha = CAST(GETDATE() AS DATE)
+		END
+
+		IF @hora IS NULL
+		BEGIN
+			SET @hora = CAST(GETDATE() AS TIME)
+		END
         -- Insertar la nueva factura en la tabla de facturas
         INSERT INTO gestion_venta.Factura (id_factura, id_tipoFactura, id_cliente, fecha, hora, id_medioDePago, id_empleado, id_sucursal)
-        VALUES (@id_factura, @id_tipo, @id_cliente, @fecha, @hora, @id_medio, @id_empleado, @id_sucursal);
+        VALUES (@id_factura, @id_tipoFactura, @id_cliente, @fecha, @hora, @id_medioDePago, @id_empleado, @id_sucursal);
 		PRINT 'Factura insertada con éxito.';
     END TRY
     BEGIN CATCH
@@ -843,12 +965,18 @@ IF OBJECT_ID('[gestion_venta].[Insertar_DetalleVenta]', 'P') IS NOT NULL
     DROP PROCEDURE [gestion_venta].[Insertar_DetalleVenta];
 GO
 
-CREATE PROCEDURE [gestion_venta].[Insertar_DetalleVenta]
+CREATE PROCEDURE gestion_venta.Insertar_DetalleVenta
     @id_producto INT,
     @id_factura INT,
     @cantidad INT
 AS
 BEGIN
+	IF @id_factura IS NULL AND @id_producto IS NULL AND @cantidad IS NULL
+	BEGIN
+		RAISERROR('Error: Debe ingresar el producto, la factura y cantidad.', 16, 1);
+		RETURN;
+	END
+
     -- Declaración de variables
     DECLARE @subtotal_actual DECIMAL(8,2);
     DECLARE @precio_unitario DECIMAL(7,2);
