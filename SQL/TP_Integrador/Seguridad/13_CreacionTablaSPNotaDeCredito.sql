@@ -3,23 +3,23 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			Mar√≠a del Pilar Bourdieu 45289653
-			Abigail Karina Pe√±afiel Huayta	41913506
+			MarÌa del Pilar Bourdieu 45289653
+			Abigail Karina PeÒafiel Huayta	41913506
 			Federico Pucci 41106855
-			Mara Ver√≥nica Guerrera 40538513
+			Mara VerÛnica Guerrera 40538513
 
 		FECHA DE ENTREGA: 22/11/2024
 
 ENTREGA 5:
 
-Cuando un cliente reclama la devoluci√≥n de un producto se genera una nota de cr√©dito por el
+Cuando un cliente reclama la devoluciÛn de un producto se genera una nota de crÈdito por el
 valor del producto o un producto del mismo tipo.
-En el caso de que el cliente solicite la nota de cr√©dito, solo los Supervisores tienen el permiso
+En el caso de que el cliente solicite la nota de crÈdito, solo los Supervisores tienen el permiso
 para generarla.
-Tener en cuenta que la nota de cr√©dito debe estar asociada a una Factura con estado pagada.
+Tener en cuenta que la nota de crÈdito debe estar asociada a una Factura con estado pagada.
 Asigne los roles correspondientes para poder cumplir con este requisito.
 Por otra parte, se requiere que los datos de los empleados se encuentren encriptados, dado
-que los mismos contienen informaci√≥n personal.
+que los mismos contienen informaciÛn personal.
 */
 -- ============================ ROL SUPERVISOR ============================
 USE Com5600G05
@@ -129,7 +129,7 @@ BEGIN
 		RETURN
 	END
 
-    -- Validar que la factura est√© pagada
+    -- Validar que la factura estÈ pagada
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.Factura WHERE id = @id_factura AND activo = 1)
     BEGIN
         RAISERROR('Error: La factura no existe.', 16, 1);
@@ -138,7 +138,7 @@ BEGIN
 
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.TipoComprobante WHERE id = @id_tipoComprobante)
 	BEGIN
-		RAISERROR('Error: Tipo de comprobante no v√°lido.', 16, 1);
+		RAISERROR('Error: Tipo de comprobante no v·lido.', 16, 1);
         RETURN;
 	END
 
@@ -158,22 +158,22 @@ BEGIN
 
 	IF EXISTS(SELECT 1 FROM gestion_venta.NotaCredito WHERE id_factura = @id_factura)
 	BEGIN
-		RAISERROR('Error: Ya existe una nota de cr√©dito asociada a la factura', 16, 1);
+		RAISERROR('Error: Ya existe una nota de crÈdito asociada a la factura', 16, 1);
 		RETURN;
 	END
 
 	IF NOT EXISTS (SELECT 1 FROM gestion_sucursal.Cliente WHERE id = @id_cliente AND activo = 1)
 	BEGIN
-		RAISERROR('Error: ID de cliente no v√°lido.', 16, 1);
+		RAISERROR('Error: ID de cliente no v·lido.', 16, 1);
         RETURN;
 	END
 
 	DECLARE @fecha_emision DATE;
 	SET @fecha_emision = GETDATE();
-    -- Insertar la nota de cr√©dito
+    -- Insertar la nota de crÈdito
     INSERT INTO gestion_venta.NotaCredito(id_factura, fecha,id_supervisor, id_tipoComprobante, id_sucursal, id_cliente, motivo)
     VALUES (@id_factura, @fecha_emision, @id_supervisor, @id_tipoComprobante, @id_sucursal, @id_cliente, @motivo);
-    PRINT 'Nota de cr√©dito generada exitosamente.';
+    PRINT 'Nota de crÈdito generada exitosamente.';
 END
 GO
 
@@ -195,7 +195,7 @@ BEGIN
 
 	IF NOT EXISTS (SELECT 1 FROM gestion_venta.NotaCredito WHERE id = @id_nota)
 	BEGIN
-		RAISERROR('Error: La nota de cr√©dito no es v√°lida', 16, 1);
+		RAISERROR('Error: La nota de crÈdito no es v·lida', 16, 1);
 		RETURN;
 	END
 
@@ -207,24 +207,24 @@ BEGIN
 
 	IF EXISTS (SELECT 1 FROM gestion_venta.DetalleNota WHERE id_nota = @id_nota AND id_producto = @id_producto)
 	BEGIN
-		RAISERROR('Error: Ya hay un detalle con el mismo producto asociado a la nota de cr√©dito.', 16, 1);
+		RAISERROR('Error: Ya hay un detalle con el mismo producto asociado a la nota de crÈdito.', 16, 1);
 		RETURN;
 	END
-	--Verificaci√≥n de que el id_producto este en la factura a la que se desea hacer nota de cr√©dito--
+	--VerificaciÛn de que el id_producto este en la factura a la que se desea hacer nota de crÈdito--
 	IF NOT EXISTS ( SELECT 1 FROM gestion_venta.DetalleVenta dv 
 					INNER JOIN gestion_venta.NotaCredito n ON dv.id_factura = n.id_factura 
 					WHERE dv.id_producto = @id_producto )
 	BEGIN
-		RAISERROR('Error: No existe detalle de la factura asociada que contenga el producto que se desea incluir en la nota de cr√©dito.', 16, 1)
+		RAISERROR('Error: No existe detalle de la factura asociada que contenga el producto que se desea incluir en la nota de crÈdito.', 16, 1)
 		RETURN;
 	END
 
-	--Verificaci√≥n de que la cantidad no sea nula ni n√∫mero negativo y tampoco mayor a la que aparece en el detalle de venta--
+	--VerificaciÛn de que la cantidad no sea nula ni n˙mero negativo y tampoco mayor a la que aparece en el detalle de venta--
 	IF @cantidad <= 0 OR @cantidad > (SELECT cantidad FROM gestion_venta.DetalleVenta dv INNER JOIN gestion_venta.NotaCredito n 
 	ON dv.id_factura = n.id_factura 
 	WHERE dv.id_producto = @id_producto) OR @valor_credito <= 0
 	BEGIN
-		RAISERROR('Error: La cantidad y/o el valor cr√©dito no es v√°lida', 16, 1);
+		RAISERROR('Error: La cantidad y/o el valor crÈdito no es v·lida', 16, 1);
 		RETURN;
 	END
 
@@ -233,7 +233,7 @@ BEGIN
 
 	INSERT INTO gestion_venta.DetalleNota(id_nota, id_producto, cantidad, valor_credito, importe)
     VALUES (@id_nota, @id_producto, @cantidad, @valor_credito, @importe);
-    PRINT 'Detalle de nota de cr√©dito insertado.';
+    PRINT 'Detalle de nota de crÈdito insertado.';
 END
 GO
 

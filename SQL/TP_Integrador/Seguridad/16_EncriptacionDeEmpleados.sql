@@ -3,32 +3,32 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			Mar铆a del Pilar Bourdieu 45289653
-			Abigail Karina Pe帽afiel Huayta	41913506
+			Mar韆 del Pilar Bourdieu 45289653
+			Abigail Karina Pe馻fiel Huayta	41913506
 			Federico Pucci 41106855
-			Mara Ver贸nica Guerrera 40538513
+			Mara Ver髇ica Guerrera 40538513
 
 		FECHA DE ENTREGA: 22/11/2024
 
 ENTREGA 5:
 
-Cuando un cliente reclama la devoluci贸n de un producto se genera una nota de cr茅dito por el
+Cuando un cliente reclama la devoluci髇 de un producto se genera una nota de cr閐ito por el
 valor del producto o un producto del mismo tipo.
-En el caso de que el cliente solicite la nota de cr茅dito, solo los Supervisores tienen el permiso
+En el caso de que el cliente solicite la nota de cr閐ito, solo los Supervisores tienen el permiso
 para generarla.
-Tener en cuenta que la nota de cr茅dito debe estar asociada a una Factura con estado pagada.
+Tener en cuenta que la nota de cr閐ito debe estar asociada a una Factura con estado pagada.
 Asigne los roles correspondientes para poder cumplir con este requisito.
 Por otra parte, se requiere que los datos de los empleados se encuentren encriptados, dado
-que los mismos contienen informaci贸n personal.
+que los mismos contienen informaci髇 personal.
 */
 -- ============================ ENCRIPTACION DE EMPLEADOS ============================
 USE Com5600G05
 GO
 
---Borramos 铆ndice que puede generar problemas para la encriptaci贸n--
+--Borramos 韓dice que puede generar problemas para la encriptaci髇--
 DROP INDEX UC_Legajo_Sucursal ON gestion_sucursal.Empleado;
 GO
---Agregaci贸n de campos VARBINARY--
+--Agregaci髇 de campos VARBINARY--
 ALTER TABLE gestion_sucursal.Empleado
 ADD legajo_ VARBINARY(MAX);
 GO
@@ -53,10 +53,10 @@ GO
 ALTER TABLE gestion_sucursal.Empleado
 ADD email_empresa_ VARBINARY(MAX);
 GO
---Definici贸n de clave--
+--Definici髇 de clave--
 DECLARE @Clave VARCHAR(40)
 SET @Clave = 'cisco_1234'
---Encriptaci贸n de datos--
+--Encriptaci髇 de datos--
 UPDATE gestion_sucursal.Empleado
 SET 
     legajo_ =  EncryptByPassPhrase(@Clave, CONVERT(VARBINARY(MAX), legajo)),
@@ -101,4 +101,3 @@ DROP COLUMN legajo_,
               email_,
               email_empresa_;
 GO*/
-
