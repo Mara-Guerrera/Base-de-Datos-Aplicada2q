@@ -3,33 +3,33 @@
 		GRUPO: 05
 		COMISION: 02-5600
 		INTEGRANTES:
-			Mar√≠a del Pilar Bourdieu 45289653
-			Abigail Karina Pe√±afiel Huayta	41913506
+			MarÌa del Pilar Bourdieu 45289653
+			Abigail Karina PeÒafiel Huayta	41913506
 			Federico Pucci 41106855
-			Mara Ver√≥nica Guerrera 40538513
+			Mara VerÛnica Guerrera 40538513
 
 		FECHA DE ENTREGA: 22/11/2024
 
 ENTREGA 3:
 
-Deber√° instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
-las configuraciones aplicadas (ubicaci√≥n de archivos, memoria asignada, seguridad, puertos,
-etc.) en un documento como el que le entregar√≠a al DBA.
-Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber√° entregar
-un archivo .sql con el script completo de creaci√≥n (debe funcionar si se lo ejecuta ‚Äútal cual‚Äù es
-entregado). Incluya comentarios para indicar qu√© hace cada m√≥dulo de c√≥digo.
-Genere store procedures para manejar la inserci√≥n, modificado, borrado (si corresponde,
-tambi√©n debe decidir si determinadas entidades solo admitir√°n borrado l√≥gico) de cada tabla.
-Los nombres de los store procedures NO deben comenzar con ‚ÄúSP‚Äù.
-Genere esquemas para organizar de forma l√≥gica los componentes del sistema y aplique esto
-en la creaci√≥n de objetos. NO use el esquema ‚Äúdbo‚Äù.
+Deber· instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle
+las configuraciones aplicadas (ubicaciÛn de archivos, memoria asignada, seguridad, puertos,
+etc.) en un documento como el que le entregarÌa al DBA.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber· entregar
+un archivo .sql con el script completo de creaciÛn (debe funcionar si se lo ejecuta ìtal cualî es
+entregado). Incluya comentarios para indicar quÈ hace cada mÛdulo de cÛdigo.
+Genere store procedures para manejar la inserciÛn, modificado, borrado (si corresponde,
+tambiÈn debe decidir si determinadas entidades solo admitir·n borrado lÛgico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con ìSPî.
+Genere esquemas para organizar de forma lÛgica los componentes del sistema y aplique esto
+en la creaciÛn de objetos. NO use el esquema ìdboî.
 
 USE MASTER
 DROP DATABASE Com5600G05
 USE Com5600G05
 */
 
--- ================== CREACION DE DB, ESQUEMAS Y TABLAS ==================
+-- ============================ CREACION DE DB, ESQUEMAS Y TABLAS ============================
 
 IF NOT EXISTS (
 	SELECT 1
@@ -84,7 +84,7 @@ BEGIN
 	EXEC ('create schema gestion_venta');
 END
 GO
--- ================== CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ==================
+-- ============================ CREACION TABLAS DE ESQUEMA GESTION_SUCURSAL ============================
 
 IF NOT EXISTS (
 	SELECT 1
@@ -194,7 +194,8 @@ BEGIN
 	)
 END
 GO
---Creaci√≥n de indice para no permitir la combinaci√≥n de legajo y sucursal (solo si el campo activo es 1)
+
+-- CreaciÛn de indice para no permitir la combinaciÛn de legajo y sucursal (solo si el campo activo es 1)
 CREATE UNIQUE NONCLUSTERED INDEX UC_Legajo_Sucursal
 ON gestion_sucursal.Empleado (legajo, id_sucursal)
 WHERE activo = 1;
@@ -262,7 +263,7 @@ BEGIN
 	)
 END
 GO
--- ================== CREACION TABLAS DE ESQUEMA GESTION_PRODUCTO ==================
+-- ============================ CREACION TABLAS DE ESQUEMA GESTION_PRODUCTO ============================
 	
 IF NOT EXISTS (
     SELECT 1
@@ -348,7 +349,7 @@ BEGIN
 END
 GO
 	
--- ================== CREACION TABLAS DE ESQUEMA GESTION_VENTA ==================
+-- ============================ CREACION TABLAS DE ESQUEMA GESTION_VENTA ============================
 
 IF NOT EXISTS (
     SELECT 1
