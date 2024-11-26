@@ -24,10 +24,9 @@ Los nombres de los store procedures NO deben comenzar con “SP”.
 Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto
 en la creación de objetos. NO use el esquema “dbo”.
 */
--- ============================ FUNCTIONS GESTION_VALIDACION ============================
+-- ============================ CREACION FUNCIONES DE ESQUEMA GESTION_VALIDACION ============================
 USE Com5600G05
 GO
--- ============== Funciones correspondientes al esquema gestion_validacion ==============
 
 CREATE OR ALTER FUNCTION gestion_validacion.Validar_Telefono
     (@telefono VARCHAR(15))
@@ -92,4 +91,3 @@ BEGIN
     RETURN 1;  
 END
 GO
-
