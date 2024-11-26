@@ -60,7 +60,7 @@ CREATE TABLE gestion_venta.TipoComprobante
 GO
 
 -- Inserciones en tabla tipo comprobante --
-INSERT INTO gestion_venta.Tipo_Comprobante (nombre)
+INSERT INTO gestion_venta.TipoComprobante (nombre)
 VALUES 
     ('NOTAS DE DEBITO B'),
     ('NOTAS DE CREDITO B'),
@@ -171,7 +171,7 @@ BEGIN
 	DECLARE @fecha_emision DATE;
 	SET @fecha_emision = GETDATE();
     -- Insertar la nota de crédito
-    INSERT INTO gestion_venta.NotaCredito(id_factura, fecha,id_supervisor, id_tipo_comprobante, id_sucursal, id_cliente, motivo)
+    INSERT INTO gestion_venta.NotaCredito(id_factura, fecha,id_supervisor, id_tipoComprobante, id_sucursal, id_cliente, motivo)
     VALUES (@id_factura, @fecha_emision, @id_supervisor, @id_tipoComprobante, @id_sucursal, @id_cliente, @motivo);
     PRINT 'Nota de crédito generada exitosamente.';
 END
