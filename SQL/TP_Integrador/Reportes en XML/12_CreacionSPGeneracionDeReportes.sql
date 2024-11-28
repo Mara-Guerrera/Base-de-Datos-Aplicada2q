@@ -308,20 +308,20 @@ SET @fecha_2 = '2019-02-04'
 EXEC ReporteTotalporFechaSucursal @fecha_1,@id_sucursal = 1
 GO
 -- Llamada al procedimiento ReporteDiaSemana
-EXEC ReporteDiaSemana @anio = @anio_1, @mes = @mes_1;
+EXEC ReporteDiaSemana @anio = 2019, @mes = 2;
 GO
 -- Llamada al procedimiento ReporteTotalesMes
-EXEC ReporteTotalesMes @anio = @anio_1;
+EXEC ReporteTotalesMes @anio = 2019;
 GO
 -- Llamada al procedimiento ReporteProductosPorFecha
-EXEC ReporteProductosPorFecha @fecha_1 = @fecha_1, @fecha_2 = @fecha_2;
+EXEC ReporteProductosPorFecha @fecha_1 = '2019-01-01', @fecha_2 = '2019-02-04';
 GO
 -- Llamada al procedimiento ReporteProductosPorSucursal
-EXEC ReporteProductosPorSucursal @fecha_inicio = @fecha_1, @fecha_fin = @fecha_2;
+EXEC ReporteProductosPorSucursal @fecha_inicio = '2019-01-01', @fecha_fin = '2019-02-04';
 GO
 -- Llamada al procedimiento ReporteProductosMasVendidosPorSemana
-EXEC ReporteProductosMasVendidosPorSemana @mes = @mes_1;
+EXEC ReporteProductosMasVendidosPorSemana @mes = 2;
 GO
 -- Muestro productos menos vendidos en un mes determinado -- 
-EXEC ProductosMenosVendidosPorMes @mes = @mes_1;
+EXEC ProductosMenosVendidosPorMes @mes = 2;
 GO
