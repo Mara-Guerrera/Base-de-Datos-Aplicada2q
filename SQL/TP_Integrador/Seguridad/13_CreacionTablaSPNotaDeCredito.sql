@@ -107,7 +107,7 @@ CREATE TABLE gestion_venta.DetalleNota
         CONSTRAINT CK_ValorCredito CHECK (valor_credito > 0),
 		CONSTRAINT CK_ImporteCredito CHECK (importe > 0)
     )
-GO
+
 -- ============================ STORED PROCEDURES NOTA DE CREDITO ============================
 
 IF OBJECT_ID('[gestion_venta].[Generar_NotaCredito]', 'P') IS NOT NULL

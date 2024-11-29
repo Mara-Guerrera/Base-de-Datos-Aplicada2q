@@ -23,7 +23,7 @@ que los mismos contienen información personal.
 */
 -- ============================ LOTE POSTERIOR A IMPORTACION ============================
 USE Com5600G05
-GO
+
 
 --Muestro el rol actual--
 SELECT 
@@ -53,71 +53,71 @@ DECLARE @precio_producto DECIMAL(7,2)
 DECLARE @cantidad_modificada INT
 
 --Invocación a SP de generar nota de crédito--
-EXEC gestion_venta.Generar_Nota_Credito 4,2,1,2,'Anulación de la operación',8
-GO
+EXEC gestion_venta.Generar_NotaCredito 4,2,1,2,'Anulación de la operación',8
+
 
 --Invocación a SP de generar detalle nota de crédito--
 SELECT @id_producto = id_producto, @cantidad = cantidad,@precio_producto = precio_unitario
 FROM gestion_venta.DetalleVenta WHERE id_factura = 4
-GO
+
 PRINT 'Producto que aparece en la factura: ' + CAST(@id_producto AS CHAR(4));
-GO
+
 
 -- ============================ PRUEBA DE ERRORES ============================
 
 --Cantidad mayor a la del detalle de la venta--
 SET @cantidad_modificada = @cantidad + 1
-EXEC gestion_venta.Insertar_Detalle_Nota 1,@id_producto, @cantidad_modificada, @precio_producto
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,@id_producto, @cantidad_modificada, @precio_producto
+
 
 --Valor de crédito igual a 0--
-EXEC gestion_venta.Insertar_Detalle_Nota 1,@id_producto, @cantidad_modificada, 0
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,@id_producto, @cantidad_modificada, 0
+
 
 --Producto que no existe--
-EXEC gestion_venta.Insertar_Detalle_Nota 1,6000, @cantidad_modificada, @precio_producto
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,6000, @cantidad_modificada, @precio_producto
+
 
 --Producto que no aparece en la factura--
-EXEC gestion_venta.Insertar_Detalle_Nota 1,1000, @cantidad_modificada, @precio_producto
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,1000, @cantidad_modificada, @precio_producto
+
 
 --CASO ERROR: ya existe detalle nota de credito para ese producto
 SELECT @precio_producto = precio
 FROM gestion_producto.Producto WHERE id = @id_producto
-EXEC gestion_venta.Insertar_Detalle_Nota 1,@id_producto, 1, 20.00
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,@id_producto, 1, 20.00
+
 
 --CASO ERROR: no existe nota de credito
 SELECT @precio_producto = precio
 FROM gestion_producto.Producto WHERE id = 3 
-EXEC gestion_venta.Insertar_Detalle_Nota 10000, 1, 1, 19.00
-GO
+EXEC gestion_venta.Insertar_DetalleNota 10000, 1, 1, 19.00
+
 --CASO ERROR: no es supervisor
 SELECT @precio_producto = precio
 FROM gestion_producto.Producto WHERE id = 3
 EXEC gestion_venta.Generar_Nota_Credito 4, 1, 1, 2, 'A pedido de usuario',1
-GO
+
 --Inserción exitosa--
-EXEC gestion_venta.Insertar_Detalle_Nota 1,@id_producto,@cantidad,@precio_producto
-GO
+EXEC gestion_venta.Insertar_DetalleNota 1,@id_producto,@cantidad,@precio_producto
+
 /*
 SELECT * from gestion_venta.Factura
-GO
+
 SELECT * FROM gestion_producto.Producto
-GO
+
 SELECT * FROM gestion_venta.DetalleVenta 
-GO
+
 SELECT * FROM gestion_sucursal.Empleado
-GO
+
 SELECT * FROM gestion_sucursal.Cargo
-GO
+
 SELECT * FROM gestion_sucursal.Sucursal
-GO
+
 SELECT * FROM gestion_venta.NotaCredito 
-GO
+
 DELETE FROM gestion_venta.NotaCredito
-GO
+
 SELECT * FROM [gestion_venta].[Detalle_Nota]
-GO
+
 */ 

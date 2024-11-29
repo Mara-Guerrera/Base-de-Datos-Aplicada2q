@@ -26,5 +26,5 @@ SELECT * FROM gestion_producto.Proveedor
 
 --Ejecutar luego de ejecutar 13_CreacionTablaSPNotaDeCredito--
 SELECT * FROM gestion_venta.NotaCredito 
-SELECT * FROM gestion_venta.Detalle_Nota
-SELECT * FROM gestion_venta.Tipo_Comprobante
+SELECT * FROM gestion_venta.DetalleNota
+SELECT * FROM gestion_venta.TipoComprobante

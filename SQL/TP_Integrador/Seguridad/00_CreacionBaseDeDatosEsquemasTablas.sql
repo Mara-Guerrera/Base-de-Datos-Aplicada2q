@@ -196,9 +196,9 @@ END
 GO
 
 -- Creación de indice para no permitir la combinación de legajo y sucursal (solo si el campo activo es 1)
-CREATE UNIQUE NONCLUSTERED INDEX UC_Legajo_Sucursal
-ON gestion_sucursal.Empleado (legajo, id_sucursal)
-WHERE activo = 1;
+--CREATE UNIQUE NONCLUSTERED INDEX UC_Legajo_Sucursal
+--ON gestion_sucursal.Empleado (legajo, id_sucursal)
+--WHERE activo = 1;
 
 IF NOT EXISTS (
     SELECT 1
@@ -288,7 +288,7 @@ IF NOT EXISTS (
     SELECT 1
     FROM sys.tables
     WHERE name = 'TipoProducto'
-    AND schema_id = SCHEMA_ID('gestion_productos')
+    AND schema_id = SCHEMA_ID('gestion_producto')
 )
 BEGIN
     CREATE TABLE gestion_producto.TipoProducto
