@@ -68,22 +68,21 @@ GO
 DECLARE @id INT
 EXEC gestion_producto.Insertar_Producto 
     'Queso de cabra curado', 12.50, 48, 25, 'kg', NULL, 3;
-GO
 
+GO
+DECLARE @id INT
 -- Obtener el id del producto para actualizar
 EXEC gestion_producto.Obtener_Id_Producto 
     @nombreProducto = 'Queso de cabra curado', 
     @id = @id OUTPUT;
-GO
+
 -- Modificar el producto usando el id obtenido
 EXEC gestion_producto.Modificar_Producto 
     @id, @precio = 15.6, @precio_ref = 30;
-GO
+
 --Borrar producto--
 EXEC gestion_producto.Borrar_Producto @id
-GO
 SELECT * FROM gestion_producto.Producto WHERE id = @id
-GO
 
 -- Validar modificación
 SELECT * FROM gestion_producto.Producto 
@@ -94,75 +93,75 @@ WHERE id = @id;
 EXEC gestion_sucursal.Obtener_Id_Sucursal 
     @nombreSucursal = 'San Justo', 
     @id = @id OUTPUT;
-GO
+
 SELECT id,nombre FROM gestion_sucursal.Sucursal
 WHERE id = @id
-GO
+
 EXEC gestion_sucursal.Modificar_Sucursal 
     @id, @nombre = 'Yangon';
-GO
+
 SELECT id,nombre FROM gestion_sucursal.Sucursal
 WHERE id = @id
-GO
+
 
 EXEC gestion_sucursal.Modificar_Sucursal 
     @id, @nombre = 'San Justo';
-GO
+
 
 -- ============================ Obtener y modificar categoría de producto ============================
 
 EXEC gestion_producto.Obtener_Id_Categoria 
     'labios', 11, @id = @id OUTPUT
-GO
+
 
 -- Caso de error: Modificar categoría con tipo de producto inválido
 EXEC gestion_producto.Modificar_Categoria 
     @id, @id_tipoProducto = 11;
-GO
+
 
 -- Obtener tipo de producto y modificar categoría correctamente
 EXEC gestion_producto.Obtener_Id_Tipo 
     'Perfumería', @id = @id OUTPUT;
-GO
+
 
 EXEC gestion_producto.Modificar_Categoria 
     @id, @id_tipoProducto = @id;
-GO
+
 
 -- ============================ Modificación de Tipo de producto ============================
 
 EXEC [gestion_producto].Modificar_TipoProducto 1, 'Bebidas MODIFICADO'
-GO
+
 EXEC [gestion_producto].Modificar_TipoProducto 1, 'Bebidas'
-GO
+
 
 -- ============================ Modificación de Medio de Pago ============================
 
 EXEC gestion_venta.Modificar_MedioDePago 1, 'Tarjeta MODIFICADA'
-GO
+
 EXEC gestion_venta.Modificar_MedioDePago 1, 'Tarjeta Crédito'
-GO
+
 
 --============================ Modificación de Tipo Factura ============================
 
 EXEC gestion_venta.Modificar_TipoFactura 2, 'F'
-GO
+
 EXEC gestion_venta.Modificar_TipoFactura 2, 'B'
-GO
+
 
 -- ============================ PRUEBAS DE CLIENTES ============================
 
 --Inserción de géneros--
 EXEC gestion_sucursal.Insertar_Genero 'Female'
-GO
+
 EXEC gestion_sucursal.Insertar_Genero 'Male'
-GO
+
 
 --Inserción de tipos de clientes--
 EXEC gestion_sucursal.Insertar_TipoCliente 'Normal'
-GO
+
 EXEC gestion_sucursal.Insertar_TipoCliente 'Member'
-GO
+
 
 --Inserción lote de clientes--
 
@@ -182,20 +181,20 @@ VALUES
 --Modificación de cliente--
 DECLARE @id_cliente INT;
 EXEC gestion_sucursal.Obtener_Id_Cliente @dni = 67890123, @id = @id_cliente OUTPUT;
-GO
+
 SELECT * FROM gestion_sucursal.Cliente WHERE id = @id_cliente
-GO
+
 EXEC gestion_sucursal.Modificar_Cliente @id_cliente, @id_genero = 1
-GO
+
 SELECT * FROM gestion_sucursal.Cliente WHERE id = @id_cliente
-GO
+
 
 -- ============================ Borrado de categoría ============================
 
 EXEC gestion_producto.Obtener_Id_Categoria 'aceite_vinagre_y_sal', 2, @id = @id OUTPUT
-GO
+
 EXEC gestion_producto.Borrar_Categoria @id
-GO
+
 
 --Verificación--
 SELECT nombre, id_tipoProducto, activo
@@ -205,11 +204,11 @@ WHERE nombre = 'aceite_vinagre_y_sal' AND id_tipoProducto = 2
 -- ============================ Inserción factura ============================
 
 EXEC gestion_venta.Insertar_Factura '752-68-8428', 1, 2, '2024-11-15', '14:30:00', 2, 5, 3
-GO
+
 EXEC gestion_venta.Obtener_Id_Factura '752-68-8428', @id OUTPUT
-GO
+
 EXEC gestion_venta.Insertar_DetalleVenta 1, @id, 4
-GO
+
 
 --Intento de inserción de una factura cuyo id no existe--
 EXEC gestion_venta.Insertar_DetalleVenta 1,1010,4

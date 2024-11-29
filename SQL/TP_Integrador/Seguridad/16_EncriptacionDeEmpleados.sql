@@ -8,7 +8,7 @@
 			Federico Pucci 41106855
 			Mara Verónica Guerrera 40538513
 
-		FECHA DE ENTREGA: 22/11/2024
+		FECHA DE ENTREGA: 29/11/2024
 
 ENTREGA 5:
 
